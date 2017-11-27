@@ -1,5 +1,7 @@
 # chartjs-plugin-trendline
 
+This plugin draws an linear trendline in your Chart.
+
 ## Configuration
 
 To configure the trendline plugin you simply add new config options to your chart config.
@@ -11,6 +13,17 @@ To configure the trendline plugin you simply add new config options to your char
 		width: 2
 	}
 }
+```
+
+
+## Supported chart types
+
+* bar
+
+## Contributing
+
+Pull requests and issues are always welcome.
+For bugs and feature requests, [please create an issue](https://github.com/Makanz/chartjs-plugin-trendline/issues).
 
 ## License
 
