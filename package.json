@@ -1,0 +1,19 @@
+{
+  "name": "chartjs-plugin-trendline",
+  "version": "0.0.1",
+  "description": "Trendline for Chart.js",
+  "main": "chartjs-plugin-trendline.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Makanz/chartjs-plugin-trendline.git"
+  },
+  "author": "Marcus Alsterfjord",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Makanz/chartjs-plugin-trendline/issues"
+  },
+  "homepage": "https://github.com/Makanz/chartjs-plugin-trendline#readme"
+}
