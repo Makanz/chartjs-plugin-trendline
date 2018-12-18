@@ -1,47 +1,48 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 0.0.1
+ * Version: 0.0.4
  *
  * Copyright 2017 Marcus Alsterfjord
  * Released under the MIT license
  * https://github.com/Makanz/chartjs-plugin-trendline/blob/master/README.md
  */
 var pluginTrendlineLinear = {
-    beforeDraw: function (chartInstance) {
+    beforeDraw: function(chartInstance) {
+        var yScale = chartInstance.scales["y-axis-0"];
+        var ctx = chartInstance.chart.ctx;
 
-        var yScale = chartInstance.scales["y-axis-0"],
-            canvas = chartInstance.chart,
-            ctx = canvas.ctx;        
-
-        for (var i = 0; i < chartInstance.data.datasets.length; i++) {
-            
-            if (chartInstance.data.datasets[i].trendlineLinear) {                                               
-                var datasets = chartInstance.data.datasets[i],
-                    datasetMeta = chartInstance.getDatasetMeta(i);                                                     
-
-                addFitter(datasetMeta, ctx, datasets, yScale);
+        chartInstance.data.datasets.forEach(function(dataset, index) {
+            if (dataset.trendlineLinear) {
+                var datasetMeta = chartInstance.getDatasetMeta(index);
+                addFitter(datasetMeta, ctx, dataset, yScale);
             }
-        }
+        });
+
+        ctx.setLineDash([]);
     }
 };
 
-function addFitter(datasetMeta, ctx, datasets, yScale) {
-    
-    var style = datasets.trendlineLinear.style;
-        style = (style !== undefined) ? style : "rgba(169,169,169, .6)";    
-    var lineWidth = datasets.trendlineLinear.width;
-        lineWidth = (lineWidth !== undefined) ? lineWidth : 3;
+function addFitter(datasetMeta, ctx, dataset, yScale) {
+    var style = dataset.trendlineLinear.style || dataset.borderColor;
+    var lineWidth = dataset.trendlineLinear.width || dataset.borderWidth;
+    var lineStyle = dataset.trendlineLinear.lineStyle || "solid";
 
-    var lastIndex = datasets.data.length - 1,
-        startPos = datasetMeta.data[0]._model.x,
-        endPos = datasetMeta.data[lastIndex]._model.x,
-        fitter = new LineFitter();
+    style = (style !== undefined) ? style : "rgba(169,169,169, .6)";
+    lineWidth = (lineWidth !== undefined) ? lineWidth : 3;
 
-    for (var i = 0; i < datasets.data.length; i++) {
-        fitter.add(i, datasets.data[i]);
-    }
+    var lastIndex = dataset.data.length - 1;
+    var startPos = datasetMeta.data[0]._model.x;
+    var endPos = datasetMeta.data[lastIndex]._model.x;
+    var fitter = new LineFitter();
+
+    dataset.data.forEach(function(data, index) {
+        fitter.add(index, data);
+    });
 
     ctx.lineWidth = lineWidth;
+    if (lineStyle === "dotted") {
+        ctx.setLineDash([2, 3]);
+    }
     ctx.beginPath();
     ctx.moveTo(startPos, yScale.getPixelForValue(fitter.project(0)));
     ctx.lineTo(endPos, yScale.getPixelForValue(fitter.project(lastIndex)));

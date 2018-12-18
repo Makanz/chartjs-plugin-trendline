@@ -4,12 +4,13 @@ This plugin draws an linear trendline in your Chart. Made for Chart.js > 2.0
 
 ## Configuration
 
-To configure the trendline plugin you simply add new config options to your chart config.
+To configure the trendline plugin you simply add new config options for dataset to your chart config.
 
 ```javascript
 {
 	trendlineLinear: {
 		style: "rgba(255,105,180, .8)",
+		lineStyle: "dotted|solid",
 		width: 2
 	}
 }
