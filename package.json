@@ -2,7 +2,7 @@
   "name": "chartjs-plugin-trendline",
   "version": "0.0.4",
   "description": "Trendline for Chart.js",
-  "main": "chartjs-plugin-trendline.js",
+  "main": "src/chartjs-plugin-trendline.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
