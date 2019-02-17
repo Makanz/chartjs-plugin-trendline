@@ -20,6 +20,7 @@ To configure the trendline plugin you simply add new config options for dataset 
 ## Supported chart types
 
 * bar
+* line
 
 ## Contributing
 
