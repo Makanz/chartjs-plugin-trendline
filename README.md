@@ -4,7 +4,7 @@ This plugin draws an linear trendline in your Chart. Made for Chart.js > 2.0
 
 ## Configuration
 
-To configure the trendline plugin you simply add new config options for dataset to your chart config.
+To configure the trendline plugin you simply add a new config options to your dataset in your chart config.
 
 ```javascript
 {
