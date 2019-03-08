@@ -12,7 +12,7 @@ var pluginTrendlineLinear = {
         var ctx = chartInstance.chart.ctx;
 
         chartInstance.data.datasets.forEach(function(dataset, index) {
-            if (dataset.trendlineLinear) {
+            if (dataset.trendlineLinear && chartInstance.isDatasetVisible(index)) {
                 var datasetMeta = chartInstance.getDatasetMeta(index);
                 addFitter(datasetMeta, ctx, dataset, yScale);
             }
