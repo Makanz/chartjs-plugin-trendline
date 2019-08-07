@@ -1,6 +1,6 @@
 {
   "name": "chartjs-plugin-trendline",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Trendline for Chart.js",
   "main": "src/chartjs-plugin-trendline.js",
   "scripts": {
@@ -18,10 +18,10 @@
   "homepage": "https://github.com/Makanz/chartjs-plugin-trendline#readme",
   "devDependencies": {
     "del": "^3.0.0",
-    "gulp": "^4.0.0",
+    "gulp": "^4.0.2",
     "gulp-bump": "^3.1.3",
     "gulp-rename": "^1.4.0",
-    "gulp-uglify": "^3.0.1",
+    "gulp-uglify": "^3.0.2",
     "pump": "^3.0.0"
   }
 }

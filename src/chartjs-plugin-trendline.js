@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 0.1.1
+ * Version: 0.1.2
  *
  * Copyright 2017 Marcus Alsterfjord
  * Released under the MIT license
@@ -12,7 +12,7 @@ var pluginTrendlineLinear = {
     beforeDraw: function(chartInstance) {
         var yScale;
         var xScale;
-        for (let axis in chartInstance.scales) {
+        for (var axis in chartInstance.scales) {
             if ( axis[0] == 'x')
                 xScale = chartInstance.scales[axis];
             else
