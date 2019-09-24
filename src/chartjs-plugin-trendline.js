@@ -82,6 +82,9 @@ function LineFitter() {
 
 LineFitter.prototype = {
     'add': function (x, y) {
+        x = parseFloat(x);
+		y = parseFloat(y);
+        
         this.count++;
         this.sumX += x;
         this.sumX2 += x * x;
@@ -91,6 +94,8 @@ LineFitter.prototype = {
         if ( x > this.maxx ) this.maxx = x;
     },
     'f': function (x) {
+        x = parseFloat(x);
+        
         var det = this.count * this.sumX2 - this.sumX * this.sumX;
         var offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
         var scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
