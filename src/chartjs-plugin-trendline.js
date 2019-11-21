@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 0.1.2
+ * Version: 0.1.3
  *
  * Copyright 2017 Marcus Alsterfjord
  * Released under the MIT license
@@ -59,22 +59,22 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     var y2 = yScale.getPixelForValue(fitter.f(fitter.maxx));
     if ( !xy ) { x1 = startPos; x2 = endPos; }
     
-    const drawBottom = datasetMeta.controller.chart.chartArea.bottom;
-    const chartWidth = datasetMeta.controller.chart.width;
+    var drawBottom = datasetMeta.controller.chart.chartArea.bottom;
+    var chartWidth = datasetMeta.controller.chart.width;
 
     if(y1 > drawBottom) { // Left side is below zero
-        const diff = y1 - drawBottom;
-        const lineHeight = y1 - y2;
-        const overlapPercentage = diff / lineHeight;
-        const addition = chartWidth * overlapPercentage;
+        var diff = y1 - drawBottom;
+        var lineHeight = y1 - y2;
+        var overlapPercentage = diff / lineHeight;
+        var addition = chartWidth * overlapPercentage;
 
         y1 = drawBottom;
         x1 = (x1 + addition);
     } else if(y2 > drawBottom) { // right side is below zero
-        const diff = y2 - drawBottom;
-        const lineHeight = y2 - y1;
-        const overlapPercentage = diff / lineHeight;
-        const subtraction = chartWidth - (chartWidth * overlapPercentage);
+        var diff = y2 - drawBottom;
+        var lineHeight = y2 - y1;
+        var overlapPercentage = diff / lineHeight;
+        var subtraction = chartWidth - (chartWidth * overlapPercentage);
 
         y2 = drawBottom;
         x2 = chartWidth - (x2 - subtraction);
