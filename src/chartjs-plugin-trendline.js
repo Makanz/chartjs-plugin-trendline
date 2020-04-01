@@ -9,6 +9,7 @@
  * Mod by: vesal: accept also xy-data so works with scatter
  */
 var pluginTrendlineLinear = {
+    id: "trendlineLinear",
     beforeDraw: function(chartInstance) {
         var yScale;
         var xScale;
@@ -91,8 +92,6 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     ctx.stroke();
 }
 
-Chart.plugins.register(pluginTrendlineLinear);
-
 function LineFitter() {
     this.count = 0;
     this.sumX = 0;
@@ -120,3 +119,12 @@ LineFitter.prototype = {
         return offset + x * scale;
     }
 };
+
+// If we're in the browser and have access to the global Chart obj, register plugin automatically
+if (typeof window !== "undefined" && window.Chart)
+    window.Chart.plugins.register(pluginTrendlineLinear);
+
+// Otherwise, try to export the plugin
+try {
+    module.exports = exports = pluginTrendlineLinear;
+} catch (e) {}
