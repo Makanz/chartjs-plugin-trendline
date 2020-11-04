@@ -1,14 +1,15 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 0.1.3
+ * Version: 0.2.0
  *
- * Copyright 2017 Marcus Alsterfjord
+ * Copyright 2020 Marcus Alsterfjord
  * Released under the MIT license
  * https://github.com/Makanz/chartjs-plugin-trendline/blob/master/README.md
  *
  * Mod by: vesal: accept also xy-data so works with scatter
  */
 var pluginTrendlineLinear = {
+    id: "trendlineLinear",
     afterDraw: function(chartInstance) {
         var yScale;
         var xScale;
@@ -49,10 +50,21 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     if ( dataset.data && typeof dataset.data[0] === 'object') xy = true;
 
     dataset.data.forEach(function(data, index) {
+
         if(data == null)
             return;
-        if ( xy ) fitter.add(data.x, data.y);
-        else fitter.add(index, data);
+
+        if (xScale.options.type === "time") {
+            var x = data.x != null ? data.x : data.t;
+            fitter.add(new Date(x).getTime(), data.y);
+        }
+        else if (xy) {
+            fitter.add(data.x, data.y);
+        }
+        else {
+            fitter.add(index, data);
+        }
+            
     });
 
     var x1 = xScale.getPixelForValue(fitter.minx);
@@ -91,8 +103,6 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     ctx.stroke();
 }
 
-Chart.plugins.register(pluginTrendlineLinear);
-
 function LineFitter() {
     this.count = 0;
     this.sumX = 0;
@@ -105,6 +115,9 @@ function LineFitter() {
 
 LineFitter.prototype = {
     'add': function (x, y) {
+        x = parseFloat(x);
+		y = parseFloat(y);
+        
         this.count++;
         this.sumX += x;
         this.sumX2 += x * x;
@@ -114,9 +127,20 @@ LineFitter.prototype = {
         if ( x > this.maxx ) this.maxx = x;
     },
     'f': function (x) {
+        x = parseFloat(x);
+        
         var det = this.count * this.sumX2 - this.sumX * this.sumX;
         var offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
         var scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
         return offset + x * scale;
     }
 };
+
+// If we're in the browser and have access to the global Chart obj, register plugin automatically
+if (typeof window !== "undefined" && window.Chart)
+    window.Chart.plugins.register(pluginTrendlineLinear);
+
+// Otherwise, try to export the plugin
+try {
+    module.exports = exports = pluginTrendlineLinear;
+} catch (e) {}
