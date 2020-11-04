@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 0.1.2
+ * Version: 0.1.3
  *
  * Copyright 2017 Marcus Alsterfjord
  * Released under the MIT license
@@ -9,6 +9,7 @@
  * Mod by: vesal: accept also xy-data so works with scatter
  */
 var pluginTrendlineLinear = {
+    id: "trendlineLinear",
     beforeDraw: function(chartInstance) {
         var yScale;
         var xScale;
@@ -49,7 +50,11 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     if ( dataset.data && typeof dataset.data[0] === 'object') xy = true;
 
     dataset.data.forEach(function(data, index) {
-        if ( xy ) fitter.add(data.x, data.y);
+        if (data == null) return;
+
+        if (xScale.options.type === "time")
+            fitter.add(new Date(data.x).getTime(), data.y);
+        else if (xy) fitter.add(data.x, data.y);
         else fitter.add(index, data);
     });
 
@@ -58,6 +63,27 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     var y1 = yScale.getPixelForValue(fitter.f(fitter.minx));
     var y2 = yScale.getPixelForValue(fitter.f(fitter.maxx));
     if ( !xy ) { x1 = startPos; x2 = endPos; }
+    
+    var drawBottom = datasetMeta.controller.chart.chartArea.bottom;
+    var chartWidth = datasetMeta.controller.chart.width;
+
+    if(y1 > drawBottom) { // Left side is below zero
+        var diff = y1 - drawBottom;
+        var lineHeight = y1 - y2;
+        var overlapPercentage = diff / lineHeight;
+        var addition = chartWidth * overlapPercentage;
+
+        y1 = drawBottom;
+        x1 = (x1 + addition);
+    } else if(y2 > drawBottom) { // right side is below zero
+        var diff = y2 - drawBottom;
+        var lineHeight = y2 - y1;
+        var overlapPercentage = diff / lineHeight;
+        var subtraction = chartWidth - (chartWidth * overlapPercentage);
+
+        y2 = drawBottom;
+        x2 = chartWidth - (x2 - subtraction);
+    }
 
     ctx.lineWidth = lineWidth;
     if (lineStyle === "dotted") { ctx.setLineDash([2, 3]); }
@@ -67,8 +93,6 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     ctx.strokeStyle = style;
     ctx.stroke();
 }
-
-Chart.plugins.register(pluginTrendlineLinear);
 
 function LineFitter() {
     this.count = 0;
@@ -102,3 +126,12 @@ LineFitter.prototype = {
         return offset + x * scale;
     }
 };
+
+// If we're in the browser and have access to the global Chart obj, register plugin automatically
+if (typeof window !== "undefined" && window.Chart)
+    window.Chart.plugins.register(pluginTrendlineLinear);
+
+// Otherwise, try to export the plugin
+try {
+    module.exports = exports = pluginTrendlineLinear;
+} catch (e) {}
