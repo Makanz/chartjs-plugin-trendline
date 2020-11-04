@@ -1,8 +1,8 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 0.1.3
+ * Version: 0.2.0
  *
- * Copyright 2017 Marcus Alsterfjord
+ * Copyright 2020 Marcus Alsterfjord
  * Released under the MIT license
  * https://github.com/Makanz/chartjs-plugin-trendline/blob/master/README.md
  *
@@ -55,7 +55,7 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
             return;
 
         if (xScale.options.type === "time") {
-            let x = data.x ?? data.t;
+            var x = data.x != null ? data.x : data.t;
             fitter.add(new Date(x).getTime(), data.y);
         }
         else if (xy) {
