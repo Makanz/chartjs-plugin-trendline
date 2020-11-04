@@ -50,9 +50,11 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     if ( dataset.data && typeof dataset.data[0] === 'object') xy = true;
 
     dataset.data.forEach(function(data, index) {
-        if(data == null)
-            return;
-        if ( xy ) fitter.add(data.x, data.y);
+        if (data == null) return;
+
+        if (xScale.options.type === "time")
+            fitter.add(new Date(data.x).getTime(), data.y);
+        else if (xy) fitter.add(data.x, data.y);
         else fitter.add(index, data);
     });
 
