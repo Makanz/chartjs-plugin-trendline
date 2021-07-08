@@ -9,7 +9,7 @@
  * Mod by: vesal: accept also xy-data so works with scatter
  */
 var pluginTrendlineLinear = {
-    id: "trendlineLinear",
+    id: "chartjs-plugin-trendline",
     afterDraw: function(chartInstance) {
         var yScale;
         var xScale;
@@ -20,7 +20,7 @@ var pluginTrendlineLinear = {
                 yScale = chartInstance.scales[axis];
             if ( xScale && yScale ) break;
         }
-        var ctx = chartInstance.chart.ctx;
+        var ctx = chartInstance.ctx;
 
         chartInstance.data.datasets.forEach(function(dataset, index) {
             if (dataset.trendlineLinear && chartInstance.isDatasetVisible(index) && dataset.data.length != 0) {
@@ -43,8 +43,8 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
 
     var fitter = new LineFitter();
     var lastIndex = dataset.data.length - 1;
-    var startPos = datasetMeta.data[0]._model.x;
-    var endPos = datasetMeta.data[lastIndex]._model.x;
+    var startPos = datasetMeta.data[0].x;
+    var endPos = datasetMeta.data[lastIndex].x;
 
     var xy = false;
     if ( dataset.data && typeof dataset.data[0] === 'object') xy = true;
@@ -137,8 +137,13 @@ LineFitter.prototype = {
 };
 
 // If we're in the browser and have access to the global Chart obj, register plugin automatically
-if (typeof window !== "undefined" && window.Chart)
-    window.Chart.plugins.register(pluginTrendlineLinear);
+if (typeof window !== undefined && window.Chart) {
+    if (window.Chart.hasOwnProperty('register')) {
+        window.Chart.register(pluginTrendlineLinear);
+    } else {
+        window.Chart.plugins.register(pluginTrendlineLinear);
+    }
+}
 
 // Otherwise, try to export the plugin
 try {
