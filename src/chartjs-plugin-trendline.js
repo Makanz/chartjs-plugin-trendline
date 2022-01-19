@@ -68,9 +68,27 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     });
 
     var x1 = xScale.getPixelForValue(fitter.minx);
-    var x2 = xScale.getPixelForValue(fitter.maxx);
     var y1 = yScale.getPixelForValue(fitter.f(fitter.minx));
-    var y2 = yScale.getPixelForValue(fitter.f(fitter.maxx));
+
+    var x2;
+    var y2;
+
+    // Project only on x axes, do not project if trendline will never hit x axes
+    if((dataset.trendlineLinear.projection) && (fitter.scale() < 0) ){ 
+        //  X
+        var x2value = fitter.fo()
+        if ( x2value < fitter.minx ) x2value = fitter.maxx;
+        x2 = xScale.getPixelForValue(x2value);    
+        
+        //  Y
+        y2 = yScale.getPixelForValue(fitter.f(x2value));    
+    }
+    else {
+        x2 = xScale.getPixelForValue(fitter.maxx);
+        y2 = yScale.getPixelForValue(fitter.f(fitter.maxx));
+    }
+
+ 
     if ( !xy ) { x1 = startPos; x2 = endPos; }
     
     var drawBottom = datasetMeta.controller.chart.chartArea.bottom;
@@ -111,6 +129,7 @@ function LineFitter() {
     this.sumY = 0;
     this.minx = 1e100;
     this.maxx = -1e100;
+    this.maxy = -1e100;
 }
 
 LineFitter.prototype = {
@@ -125,6 +144,7 @@ LineFitter.prototype = {
         this.sumY += y;
         if ( x < this.minx ) this.minx = x;
         if ( x > this.maxx ) this.maxx = x;
+        if ( y > this.maxy ) this.maxy = y;
     },
     'f': function (x) {
         x = parseFloat(x);
@@ -133,6 +153,21 @@ LineFitter.prototype = {
         var offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
         var scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
         return offset + x * scale;
+    },
+    'fo': function(){
+        var det = this.count * this.sumX2 - this.sumX * this.sumX;
+        var offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
+        var scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
+
+        //  Get x when y = 0
+        var xo = -offset / scale
+        return xo;
+    },
+    'scale': function() {
+        var det = this.count * this.sumX2 - this.sumX * this.sumX;
+        var scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
+
+        return scale;
     }
 };
 

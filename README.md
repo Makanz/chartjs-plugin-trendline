@@ -35,7 +35,8 @@ To configure the trendline plugin you simply add a new config options to your da
 	trendlineLinear: {
 		style: "rgba(255,105,180, .8)",
 		lineStyle: "dotted|solid",
-		width: 2
+		width: 2,
+		projection: true|false (optional)
 	}
 }
 ```
