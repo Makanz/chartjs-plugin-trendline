@@ -10,7 +10,7 @@
  */
 var pluginTrendlineLinear = {
     id: 'chartjs-plugin-trendline',
-    afterDraw: function (chartInstance) {
+    afterDatasetsDraw: function (chartInstance) {
         var yScale
         var xScale
         for (var axis in chartInstance.scales) {
