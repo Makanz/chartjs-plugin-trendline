@@ -55,7 +55,7 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     var endPos = datasetMeta.data[lastIndex].x
 
     var xy = false
-    if (dataset.data && typeof dataset.data[0] === 'object') xy = true
+    if (dataset.data && dataset.data[0] && typeof dataset.data[0] === 'object') xy = true
 
     dataset.data.forEach(function (data, index) {
         if (data == null) return
