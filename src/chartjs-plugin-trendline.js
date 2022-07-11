@@ -50,12 +50,13 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     lineWidth = lineWidth !== undefined ? lineWidth : 3
 
     var fitter = new LineFitter()
+    var firstIndex = dataset.data.findIndex(d => {
+        return d !== undefined && d !== null
+    })
     var lastIndex = dataset.data.length - 1
-    var startPos = datasetMeta.data[0].x
+    var startPos = datasetMeta.data[firstIndex].x
     var endPos = datasetMeta.data[lastIndex].x
-
-    var xy = false
-    if (dataset.data && typeof dataset.data[0] === 'object') xy = true
+    var xy = typeof dataset.data[firstIndex] === 'object'
 
     dataset.data.forEach(function (data, index) {
         if (data == null) return
