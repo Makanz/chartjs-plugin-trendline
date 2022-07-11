@@ -9,7 +9,7 @@ This plugin draws an linear trendline in your Chart. Made for Chart.js 3.X
 Load ChartJS first, then the plugin which will automatically register itself with ChartJS
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.8.0/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline"></script>
 ```
 
