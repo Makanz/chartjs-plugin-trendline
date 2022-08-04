@@ -20,8 +20,8 @@ Install & import the plugin via npm:
 `npm i chart.js chartjs-plugin-trendline`
 
 ```js
-import ChartJS from "chart.js";
-import chartTrendline from "chartjs-plugin-trendline";
+import ChartJS from 'chart.js';
+import chartTrendline from 'chartjs-plugin-trendline';
 
 ChartJS.plugins.register(chartTrendline);
 ```
@@ -33,7 +33,8 @@ To configure the trendline plugin you simply add a new config options to your da
 ```javascript
 {
 	trendlineLinear: {
-		style: "rgba(255,105,180, .8)",
+		colorMin: "red",
+		colorMax: "green",
 		lineStyle: "dotted|solid",
 		width: 2,
 		projection: true|false (optional)
