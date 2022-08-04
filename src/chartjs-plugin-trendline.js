@@ -42,11 +42,12 @@ var pluginTrendlineLinear = {
 };
 
 function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
-    var style = dataset.trendlineLinear.style || dataset.borderColor;
+    var defaultColor = dataset.borderColor || 'rgba(169,169,169, .6)';
+    var colorMin = dataset.trendlineLinear.colorMin || defaultColor;
+    var colorMax = dataset.trendlineLinear.colorMax || defaultColor;
     var lineWidth = dataset.trendlineLinear.width || dataset.borderWidth;
     var lineStyle = dataset.trendlineLinear.lineStyle || 'solid';
 
-    style = style !== undefined ? style : 'rgba(169,169,169, .6)';
     lineWidth = lineWidth !== undefined ? lineWidth : 3;
 
     var fitter = new LineFitter();
@@ -126,7 +127,18 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
-    ctx.strokeStyle = style;
+
+    var gradient= ctx.createLinearGradient(x1, y1, x2, y2);
+    if (y2 < y1) {
+        gradient.addColorStop(0, colorMax);
+        gradient.addColorStop(1, colorMin);
+    } else{
+        gradient.addColorStop(0, colorMin);
+        gradient.addColorStop(1, colorMax);
+    }
+    
+    ctx.strokeStyle = gradient;
+
     ctx.stroke();
 }
 
