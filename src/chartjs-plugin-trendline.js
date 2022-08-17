@@ -47,6 +47,7 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     var colorMax = dataset.trendlineLinear.colorMax || defaultColor;
     var lineWidth = dataset.trendlineLinear.width || dataset.borderWidth;
     var lineStyle = dataset.trendlineLinear.lineStyle || 'solid';
+    var fillColor = dataset.trendlineLinear.fillColor;
 
     lineWidth = lineWidth !== undefined ? lineWidth : 3;
 
@@ -140,6 +141,18 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     ctx.strokeStyle = gradient;
 
     ctx.stroke();
+    ctx.closePath();
+
+    if (!!fillColor) {
+        ctx.fillStyle = fillColor;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.lineTo(x2, drawBottom);
+        ctx.lineTo(x1, drawBottom);
+        ctx.closePath();
+        ctx.fill();
+    }
 }
 
 function LineFitter() {
