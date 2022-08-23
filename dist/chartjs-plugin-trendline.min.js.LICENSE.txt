@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 1.0.3
+ * Version: 2.0.0
  *
  * Copyright 2022 Marcus Alsterfjord
  * Released under the MIT license
