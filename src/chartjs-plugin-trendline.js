@@ -24,7 +24,7 @@ var pluginTrendlineLinear = {
             if (
                 dataset.trendlineLinear &&
                 chartInstance.isDatasetVisible(index) &&
-                dataset.data.length != 0
+                dataset.data.length > 1
             ) {
                 var datasetMeta = chartInstance.getDatasetMeta(index);
                 addFitter(
