@@ -1,8 +1,8 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 2.0.0
+ * Version: 2.0.1
  *
- * Copyright 2022 Marcus Alsterfjord
+ * Copyright 2023 Marcus Alsterfjord
  * Released under the MIT license
  * https://github.com/Makanz/chartjs-plugin-trendline/blob/master/README.md
  *
@@ -129,15 +129,15 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
 
-    var gradient= ctx.createLinearGradient(x1, y1, x2, y2);
+    var gradient = ctx.createLinearGradient(x1, y1, x2, y2);
     if (y2 < y1) {
         gradient.addColorStop(0, colorMax);
         gradient.addColorStop(1, colorMin);
-    } else{
+    } else {
         gradient.addColorStop(0, colorMin);
         gradient.addColorStop(1, colorMax);
     }
-    
+
     ctx.strokeStyle = gradient;
 
     ctx.stroke();
