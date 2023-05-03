@@ -21,9 +21,11 @@ var pluginTrendlineLinear = {
         var ctx = chartInstance.ctx;
 
         chartInstance.data.datasets.forEach(function (dataset, index) {
+            var showTrendline = dataset.alwaysShowTrendline || chartInstance.isDatasetVisible(index);
+
             if (
                 dataset.trendlineLinear &&
-                chartInstance.isDatasetVisible(index) &&
+                showTrendline &&
                 dataset.data.length > 1
             ) {
                 var datasetMeta = chartInstance.getDatasetMeta(index);
