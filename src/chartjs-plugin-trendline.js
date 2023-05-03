@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 2.0.1
+ * Version: 2.0.2
  *
  * Copyright 2023 Marcus Alsterfjord
  * Released under the MIT license
@@ -21,7 +21,9 @@ var pluginTrendlineLinear = {
         var ctx = chartInstance.ctx;
 
         chartInstance.data.datasets.forEach(function (dataset, index) {
-            var showTrendline = dataset.alwaysShowTrendline || chartInstance.isDatasetVisible(index);
+            var showTrendline =
+                dataset.alwaysShowTrendline ||
+                chartInstance.isDatasetVisible(index);
 
             if (
                 dataset.trendlineLinear &&
