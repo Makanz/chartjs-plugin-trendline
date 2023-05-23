@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>BarChart Example</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.js"></script>
     <script src="./../src/chartjs-plugin-trendline.js"></script>
     <script>
             document.addEventListener("DOMContentLoaded", function(event) {
@@ -40,7 +40,10 @@
 </head>
 <body>
     <h1>Bar Chart</h1>
-    <canvas id="bar-chart" width="800" height="450"></canvas>
+
+    <div style="width: 800px;">
+        <canvas id="bar-chart"></canvas>
+    </div>
 
     <p>Using example code from <a href="http://tobiasahlin.com/blog/chartjs-charts-to-get-you-started/" target="_blank">tobiasahlin.com.</a></p>
 </body>
