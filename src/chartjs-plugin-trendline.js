@@ -71,7 +71,13 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
             var x = data.x != null ? data.x : data.t;
             fitter.add(new Date(x).getTime(), data.y);
         } else if (xy) {
-            fitter.add(data.x, data.y);
+            if (!isNaN(data.x) && !isNaN(data.y)) {
+                fitter.add(data.x, data.y);
+            } else if (!isNaN(data.x)) {
+                fitter.add(index, data.x);
+            } else if (!isNaN(data.y)) {
+                fitter.add(index, data.y);
+            }
         } else {
             fitter.add(index, data);
         }
