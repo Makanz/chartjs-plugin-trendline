@@ -1,15 +1,16 @@
 # chartjs-plugin-trendline
 
-This plugin draws an linear trendline in your Chart. Made for Chart.js 3.X
+This plugin draws an linear trendline in your Chart.
+It has been tested with Chart.js version 4.3.0.
 
 ## Installation
 
 #### Load directly in the browser
 
-Load ChartJS first, then the plugin which will automatically register itself with ChartJS
+Load Chart.js first, then the plugin which will automatically register itself with Chart.js
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.8.0/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline"></script>
 ```
 
