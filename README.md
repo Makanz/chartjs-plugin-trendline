@@ -31,14 +31,15 @@ ChartJS.plugins.register(chartTrendline);
 
 To configure the trendline plugin you simply add a new config options to your dataset in your chart config.
 
-```javascript
+```typescript
 {
 	trendlineLinear: {
 		colorMin: "red",
 		colorMax: "green",
-		lineStyle: "dotted|solid",
+		lineStyle: "dotted" | "solid",
 		width: 2,
-		projection: true|false (optional)
+		projection?: boolean, 
+		skippedDataIndexes?: number[],
 	}
 }
 ```

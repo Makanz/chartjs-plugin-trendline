@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>LineChart Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.js"></script>
+    <script src="./../src/chartjs-plugin-trendline.js"></script>
+    <script>
+            const labels = ["January", "February", "March", "April", "May", "June", "July", "August"]
+            const data = {
+                labels,
+                datasets: [{
+                    label: "My Stats",
+                    data: [65, 59, 80, 81, 56, 55, 100, 40],
+                    fill: false,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1,
+                    trendlineLinear: {
+                        colorMin: "rgba(255,105,180, .8)",
+                        lineStyle: "dotted",
+                        width: 2,
+                        skippedDataIndexes: [7]
+                    }
+                }]
+            };
+            document.addEventListener("DOMContentLoaded", function(event) {
+                new Chart(document.getElementById("line-chart"), {
+                        type: 'line',
+                        data,
+                        });
+                });
+        </script>
+</head>
+<body>
+    <h1>Line Chart</h1>
+
+    <div style="width: 800px;">
+        <canvas id="line-chart"></canvas>
+    </div>
+
+</body>
+</html>

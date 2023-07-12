@@ -67,6 +67,10 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     dataset.data.forEach(function (data, index) {
         if (data == null) return;
 
+        if (dataset.trendlineLinear?.skippedDataIndexes?.includes(index)) {
+            return;
+        }
+
         if (['time', 'timeseries'].includes(xScale.options.type)) {
             var x = data.x != null ? data.x : data.t;
             fitter.add(new Date(x).getTime(), data.y);
