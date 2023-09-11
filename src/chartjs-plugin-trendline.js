@@ -25,6 +25,7 @@ var pluginTrendlineLinear = {
                 dataset.alwaysShowTrendline ||
                 chartInstance.isDatasetVisible(index);
 
+            // TODO: Add support for objects
             if (
                 dataset.trendlineLinear &&
                 showTrendline &&
@@ -65,6 +66,7 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     var xy = typeof dataset.data[firstIndex] === 'object';
 
     dataset.data.forEach(function (data, index) {
+        console.log('forEach');
         if (data == null) return;
 
         if (['time', 'timeseries'].includes(xScale.options.type)) {

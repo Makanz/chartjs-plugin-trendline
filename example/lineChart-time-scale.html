@@ -1,0 +1,67 @@
+<html>
+
+<head>
+  <title>Time scale chart.js</title>
+</head>
+<style>
+  .chartBox {
+    width: 700px
+  }
+</style>
+
+<body>
+  <div class="chartBox">
+    <canvas id="myChart"></canvas>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <script src="./../src/chartjs-plugin-trendline.js"></script>
+
+  <script>
+    const data = {
+      labels: [
+        "2023-01-01T08:00:00.000Z",
+        "2023-01-02T08:00:00.000Z",
+        "2023-01-03T08:00:00.000Z",
+        "2023-01-04T08:00:00.000Z",
+      ],
+      datasets: [{
+        label: "Default",
+        data: [65, 59, 80, 81],
+        trendlineLinear: {
+          colorMin: "red",
+          colorMax: "green",
+          lineStyle: "dotted",
+          width: 2,
+          projection: false,
+        },
+      }],
+    };
+    const config = {
+      type: 'line',
+      data,
+      options: {
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'day',
+            },
+          },
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    };
+    const myChart = new Chart(
+      document.getElementById('myChart'),
+      config,
+    );
+  </script>
+</body>
+
+</html>

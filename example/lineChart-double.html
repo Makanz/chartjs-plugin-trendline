@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>LineChart Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.js"></script>
+    <script src="./../src/chartjs-plugin-trendline.js"></script>
+    <script>
+let data = {
+    "labels": [
+        202303,
+        202304,
+        202305,
+        202306,
+        202307,
+        202308,
+        202309
+    ],
+    "datasets": [
+    {
+        "label": "Dataset 1",
+        "data": [
+            10,
+            30,
+            50,
+            20,
+            25,
+            44,
+            -10
+        ],
+        "borderColor": "#4dc9f6",
+        "backgroundColor": "#4dc9f6",
+        "trendlineLinear": {
+            "colorMin": "#4dc9f6",
+            "colorMax": "#4dc9f6",
+            "lineStyle": "dotted",
+            "width": 2,
+            "projection": false
+        }
+    },
+    {
+        "label": "Dataset 2",
+        "data": [
+            100,
+            33,
+            22,
+            19,
+            11,
+            49,
+            200
+        ],
+        "borderColor": "#f67019",
+        "backgroundColor": "#f67019",
+        "trendlineLinear": {
+            "colorMin": "#f67019",
+            "colorMax": "#f67019",
+            "lineStyle": "solid",
+            "width": 2,
+            "projection": false
+        }
+    }
+]
+};
+
+var lineOptions = {
+    plugins: {
+        legend: {
+            display: true,
+            labels: {
+                fontSize: 10,
+                fontColor: "#000",
+            },
+        },
+    },
+    scales: {
+        x:
+        {
+            gridLines: {
+                display: true,
+            },
+            display: true,
+            color: "rgba(255, 255, 255, 0.1)",
+        },
+        y:
+        {
+            display: false,
+        },
+    },
+    responsive: true,
+    maintainAspectRatio: true,
+};
+            document.addEventListener("DOMContentLoaded", function(event) {
+                new Chart(document.getElementById("line-chart"), {
+                        type: 'line',
+                        data: data,
+                        options:lineOptions
+                        });
+                });
+        </script>
+</head>
+<body>
+    <h1>Line Chart</h1>
+
+    <div style="width: 800px;">
+        <canvas id="line-chart"></canvas>
+    </div>
+
+</body>
+</html>
