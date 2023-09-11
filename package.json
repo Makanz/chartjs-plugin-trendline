@@ -1,6 +1,6 @@
 {
   "name": "chartjs-plugin-trendline",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Trendline for Chart.js",
   "main": "src/chartjs-plugin-trendline.js",
   "scripts": {
