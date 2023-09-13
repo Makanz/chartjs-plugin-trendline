@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 2.0.3
+ * Version: 2.0.4
  *
  * Copyright 2023 Marcus Alsterfjord
  * Released under the MIT license
@@ -69,7 +69,11 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
 
         if (['time', 'timeseries'].includes(xScale.options.type)) {
             var x = data.x != null ? data.x : data.t;
-            fitter.add(new Date(x).getTime(), data.y);
+            if (x !== undefined) {
+                fitter.add(new Date(x).getTime(), data.y);
+            } else {
+                fitter.add(index, data);
+            }
         } else if (xy) {
             if (!isNaN(data.x) && !isNaN(data.y)) {
                 fitter.add(data.x, data.y);
