@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 2.0.4
+ * Version: 2.0.5
  *
  * Copyright 2023 Marcus Alsterfjord
  * Released under the MIT license
@@ -136,9 +136,13 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     }
 
     ctx.lineWidth = lineWidth;
+
     if (lineStyle === 'dotted') {
-        ctx.setLineDash([2, 3]);
+        ctx.setLineDash([2, 3]); // Dotted
+    } else {
+        ctx.setLineDash([]); // Solid
     }
+
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
