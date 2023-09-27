@@ -8,20 +8,20 @@
  *
  * Mod by: vesal: accept also xy-data so works with scatter
  */
-var pluginTrendlineLinear = {
+const pluginTrendlineLinear = {
     id: 'chartjs-plugin-trendline',
-    afterDatasetsDraw: function (chartInstance) {
-        var yScale;
-        var xScale;
-        for (var axis in chartInstance.scales) {
+    afterDatasetsDraw: (chartInstance) => {
+        let yScale;
+        let xScale;
+        for (let axis in chartInstance.scales) {
             if (axis[0] == 'x') xScale = chartInstance.scales[axis];
             else yScale = chartInstance.scales[axis];
             if (xScale && yScale) break;
         }
-        var ctx = chartInstance.ctx;
+        const ctx = chartInstance.ctx;
 
-        chartInstance.data.datasets.forEach(function (dataset, index) {
-            var showTrendline =
+        chartInstance.data.datasets.forEach((dataset, index) => {
+            const showTrendline =
                 dataset.alwaysShowTrendline ||
                 chartInstance.isDatasetVisible(index);
 
@@ -30,7 +30,7 @@ var pluginTrendlineLinear = {
                 showTrendline &&
                 dataset.data.length > 1
             ) {
-                var datasetMeta = chartInstance.getDatasetMeta(index);
+                const datasetMeta = chartInstance.getDatasetMeta(index);
                 addFitter(
                     datasetMeta,
                     ctx,
@@ -45,30 +45,30 @@ var pluginTrendlineLinear = {
     },
 };
 
-function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
-    var defaultColor = dataset.borderColor || 'rgba(169,169,169, .6)';
-    var colorMin = dataset.trendlineLinear.colorMin || defaultColor;
-    var colorMax = dataset.trendlineLinear.colorMax || defaultColor;
-    var lineWidth = dataset.trendlineLinear.width || dataset.borderWidth;
-    var lineStyle = dataset.trendlineLinear.lineStyle || 'solid';
-    var fillColor = dataset.trendlineLinear.fillColor;
+addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
+    let defaultColor = dataset.borderColor || 'rgba(169,169,169, .6)';
+    let colorMin = dataset.trendlineLinear.colorMin || defaultColor;
+    let colorMax = dataset.trendlineLinear.colorMax || defaultColor;
+    let lineWidth = dataset.trendlineLinear.width || dataset.borderWidth;
+    let lineStyle = dataset.trendlineLinear.lineStyle || 'solid';
+    let fillColor = dataset.trendlineLinear.fillColor;
 
     lineWidth = lineWidth !== undefined ? lineWidth : 3;
 
-    var fitter = new LineFitter();
-    var firstIndex = dataset.data.findIndex((d) => {
+    let fitter = new LineFitter();
+    let firstIndex = dataset.data.findIndex((d) => {
         return d !== undefined && d !== null;
     });
-    var lastIndex = dataset.data.length - 1;
-    var startPos = datasetMeta.data[firstIndex].x;
-    var endPos = datasetMeta.data[lastIndex].x;
-    var xy = typeof dataset.data[firstIndex] === 'object';
+    let lastIndex = dataset.data.length - 1;
+    let startPos = datasetMeta.data[firstIndex].x;
+    let endPos = datasetMeta.data[lastIndex].x;
+    let xy = typeof dataset.data[firstIndex] === 'object';
 
-    dataset.data.forEach(function (data, index) {
+    dataset.data.forEach((data, index) => {
         if (data == null) return;
 
         if (['time', 'timeseries'].includes(xScale.options.type)) {
-            var x = data.x != null ? data.x : data.t;
+            let x = data.x != null ? data.x : data.t;
             if (x !== undefined) {
                 fitter.add(new Date(x).getTime(), data.y);
             } else {
@@ -87,16 +87,16 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
         }
     });
 
-    var x1 = xScale.getPixelForValue(fitter.minx);
-    var y1 = yScale.getPixelForValue(fitter.f(fitter.minx));
+    let x1 = xScale.getPixelForValue(fitter.minx);
+    let y1 = yScale.getPixelForValue(fitter.f(fitter.minx));
 
-    var x2;
-    var y2;
+    let x2;
+    let y2;
 
     // Project only on x axes, do not project if trendline will never hit x axes
     if (dataset.trendlineLinear.projection && fitter.scale() < 0) {
         //  X
-        var x2value = fitter.fo();
+        let x2value = fitter.fo();
         if (x2value < fitter.minx) x2value = fitter.maxx;
         x2 = xScale.getPixelForValue(x2value);
 
@@ -112,24 +112,24 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
         x2 = endPos;
     }
 
-    var drawBottom = datasetMeta.controller.chart.chartArea.bottom;
-    var chartWidth = datasetMeta.controller.chart.width;
+    let drawBottom = datasetMeta.controller.chart.chartArea.bottom;
+    let chartWidth = datasetMeta.controller.chart.width;
 
     if (y1 > drawBottom) {
         // Left side is below zero
-        var diff = y1 - drawBottom;
-        var lineHeight = y1 - y2;
-        var overlapPercentage = diff / lineHeight;
-        var addition = chartWidth * overlapPercentage;
+        let diff = y1 - drawBottom;
+        let lineHeight = y1 - y2;
+        let overlapPercentage = diff / lineHeight;
+        let addition = chartWidth * overlapPercentage;
 
         y1 = drawBottom;
         x1 = x1 + addition;
     } else if (y2 > drawBottom) {
         // right side is below zero
-        var diff = y2 - drawBottom;
-        var lineHeight = y2 - y1;
-        var overlapPercentage = diff / lineHeight;
-        var subtraction = chartWidth - chartWidth * overlapPercentage;
+        let diff = y2 - drawBottom;
+        let lineHeight = y2 - y1;
+        let overlapPercentage = diff / lineHeight;
+        let subtraction = chartWidth - chartWidth * overlapPercentage;
 
         y2 = drawBottom;
         x2 = chartWidth - (x2 - subtraction);
@@ -147,7 +147,7 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
 
-    var gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+    let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
     if (y2 < y1) {
         gradient.addColorStop(0, colorMax);
         gradient.addColorStop(1, colorMin);
@@ -171,21 +171,21 @@ function addFitter(datasetMeta, ctx, dataset, xScale, yScale) {
         ctx.closePath();
         ctx.fill();
     }
-}
+};
 
-function LineFitter() {
-    this.count = 0;
-    this.sumX = 0;
-    this.sumX2 = 0;
-    this.sumXY = 0;
-    this.sumY = 0;
-    this.minx = 1e100;
-    this.maxx = -1e100;
-    this.maxy = -1e100;
-}
+class LineFitter {
+    constructor() {
+        this.count = 0;
+        this.sumX = 0;
+        this.sumX2 = 0;
+        this.sumXY = 0;
+        this.sumY = 0;
+        this.minx = 1e100;
+        this.maxx = -1e100;
+        this.maxy = -1e100;
+    }
 
-LineFitter.prototype = {
-    add: function (x, y) {
+    add(x, y) {
         x = parseFloat(x);
         y = parseFloat(y);
 
@@ -197,31 +197,34 @@ LineFitter.prototype = {
         if (x < this.minx) this.minx = x;
         if (x > this.maxx) this.maxx = x;
         if (y > this.maxy) this.maxy = y;
-    },
-    f: function (x) {
+    }
+
+    f(x) {
         x = parseFloat(x);
 
-        var det = this.count * this.sumX2 - this.sumX * this.sumX;
-        var offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
-        var scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
+        let det = this.count * this.sumX2 - this.sumX * this.sumX;
+        let offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
+        let scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
         return offset + x * scale;
-    },
-    fo: function () {
-        var det = this.count * this.sumX2 - this.sumX * this.sumX;
-        var offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
-        var scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
+    }
 
-        //  Get x when y = 0
-        var xo = -offset / scale;
+    fo() {
+        let det = this.count * this.sumX2 - this.sumX * this.sumX;
+        let offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
+        let scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
+
+        // Get x when y = 0
+        let xo = -offset / scale;
         return xo;
-    },
-    scale: function () {
-        var det = this.count * this.sumX2 - this.sumX * this.sumX;
-        var scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
+    }
+
+    scale() {
+        let det = this.count * this.sumX2 - this.sumX * this.sumX;
+        let scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
 
         return scale;
-    },
-};
+    }
+}
 
 // If we're in the browser and have access to the global Chart obj, register plugin automatically
 if (typeof window !== 'undefined' && window.Chart) {
