@@ -38,6 +38,8 @@ To configure the trendline plugin you simply add a new config options to your da
 		colorMax: "green",
 		lineStyle: "dotted|solid",
 		width: 2,
+		xAxisKey: "time" (optional),
+		yAxisKey: "usage" (optional),
 		projection: true|false (optional)
 	}
 }
