@@ -45,13 +45,18 @@ const pluginTrendlineLinear = {
     },
 };
 
-addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
+const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     let defaultColor = dataset.borderColor || 'rgba(169,169,169, .6)';
     let colorMin = dataset.trendlineLinear.colorMin || defaultColor;
     let colorMax = dataset.trendlineLinear.colorMax || defaultColor;
     let lineWidth = dataset.trendlineLinear.width || dataset.borderWidth;
     let lineStyle = dataset.trendlineLinear.lineStyle || 'solid';
     let fillColor = dataset.trendlineLinear.fillColor;
+
+    const parsing = typeof datasetMeta.controller.chart.options.parsing === "object" ?
+        datasetMeta.controller.chart.options.parsing : undefined;
+    const xAxisKey = dataset.trendlineLinear.xAxisKey || parsing ? parsing.xAxisKey : "x";
+    const yAxisKey = dataset.trendlineLinear.yAxisKey || parsing ? parsing.yAxisKey : "y";
 
     lineWidth = lineWidth !== undefined ? lineWidth : 3;
 
@@ -60,17 +65,17 @@ addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         return d !== undefined && d !== null;
     });
     let lastIndex = dataset.data.length - 1;
-    let startPos = datasetMeta.data[firstIndex].x;
-    let endPos = datasetMeta.data[lastIndex].x;
+    let startPos = datasetMeta.data[firstIndex][xAxisKey];
+    let endPos = datasetMeta.data[lastIndex][xAxisKey];
     let xy = typeof dataset.data[firstIndex] === 'object';
 
     dataset.data.forEach((data, index) => {
         if (data == null) return;
 
         if (['time', 'timeseries'].includes(xScale.options.type)) {
-            let x = data.x != null ? data.x : data.t;
+            let x = data[xAxisKey] != null ? data[xAxisKey] : data.t;
             if (x !== undefined) {
-                fitter.add(new Date(x).getTime(), data.y);
+                fitter.add(new Date(x).getTime(), data[yAxisKey]);
             } else {
                 fitter.add(index, data);
             }
