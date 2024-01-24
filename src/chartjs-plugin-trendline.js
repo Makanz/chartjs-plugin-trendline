@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 2.1.0
+ * Version: 2.1.1
  *
  * Copyright 2024 Marcus Alsterfjord
  * Released under the MIT license
@@ -8,6 +8,8 @@
  *
  * Mod by: vesal: accept also xy-data so works with scatter
  */
+import { LineFitter } from './classes/lineFitter.js';
+
 const pluginTrendlineLinear = {
     id: 'chartjs-plugin-trendline',
     afterDatasetsDraw: (chartInstance) => {
@@ -175,59 +177,6 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         ctx.fill();
     }
 };
-
-class LineFitter {
-    constructor() {
-        this.count = 0;
-        this.sumX = 0;
-        this.sumX2 = 0;
-        this.sumXY = 0;
-        this.sumY = 0;
-        this.minx = 1e100;
-        this.maxx = -1e100;
-        this.maxy = -1e100;
-    }
-
-    add(x, y) {
-        x = parseFloat(x);
-        y = parseFloat(y);
-
-        this.count++;
-        this.sumX += x;
-        this.sumX2 += x * x;
-        this.sumXY += x * y;
-        this.sumY += y;
-        if (x < this.minx) this.minx = x;
-        if (x > this.maxx) this.maxx = x;
-        if (y > this.maxy) this.maxy = y;
-    }
-
-    f(x) {
-        x = parseFloat(x);
-
-        let det = this.count * this.sumX2 - this.sumX * this.sumX;
-        let offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
-        let scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
-        return offset + x * scale;
-    }
-
-    fo() {
-        let det = this.count * this.sumX2 - this.sumX * this.sumX;
-        let offset = (this.sumX2 * this.sumY - this.sumX * this.sumXY) / det;
-        let scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
-
-        // Get x when y = 0
-        let xo = -offset / scale;
-        return xo;
-    }
-
-    scale() {
-        let det = this.count * this.sumX2 - this.sumX * this.sumX;
-        let scale = (this.count * this.sumXY - this.sumX * this.sumY) / det;
-
-        return scale;
-    }
-}
 
 // If we're in the browser and have access to the global Chart obj, register plugin automatically
 if (typeof window !== 'undefined' && window.Chart) {
