@@ -1,6 +1,6 @@
 {
   "name": "chartjs-plugin-trendline",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Trendline for Chart.js",
   "main": "src/chartjs-plugin-trendline.js",
   "scripts": {
@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/Makanz/chartjs-plugin-trendline#readme",
   "devDependencies": {
-    "webpack": "^5.88.2",
+    "webpack": "^5.92.1",
     "webpack-cli": "^5.1.4"
   }
 }
