@@ -49,16 +49,14 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     let defaultColor = dataset.borderColor || 'rgba(169,169,169, .6)';
     let colorMin = dataset.trendlineLinear.colorMin || defaultColor;
     let colorMax = dataset.trendlineLinear.colorMax || defaultColor;
-    let lineWidth = dataset.trendlineLinear.width || dataset.borderWidth;
+    let lineWidth = dataset.trendlineLinear.width ?? dataset.borderWidth ?? 3;
     let lineStyle = dataset.trendlineLinear.lineStyle || 'solid';
     let fillColor = dataset.trendlineLinear.fillColor;
 
-    const parsing = typeof datasetMeta.controller.chart.options.parsing === "object" ?
-        datasetMeta.controller.chart.options.parsing : undefined;
-    const xAxisKey = dataset.trendlineLinear.xAxisKey || parsing ? parsing.xAxisKey : "x";
-    const yAxisKey = dataset.trendlineLinear.yAxisKey || parsing ? parsing.yAxisKey : "y";
-
-    lineWidth = lineWidth !== undefined ? lineWidth : 3;
+    const chartOptions = datasetMeta.controller.chart.options;
+    const parsingOptions = typeof chartOptions.parsing === 'object' ? chartOptions.parsing : undefined;
+    const xAxisKey = dataset.trendlineLinear.xAxisKey || parsingOptions?.xAxisKey || 'x';
+    const yAxisKey = dataset.trendlineLinear.yAxisKey || parsingOptions?.yAxisKey || 'y';
 
     let fitter = new LineFitter();
     let firstIndex = dataset.data.findIndex((d) => {
