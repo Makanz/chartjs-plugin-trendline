@@ -11,7 +11,7 @@ Load Chart.js first, then the plugin which will automatically register itself wi
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
 ```
 
 #### As a Chart.JS plugin
