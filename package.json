@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/Makanz/chartjs-plugin-trendline#readme",
   "devDependencies": {
-    "webpack": "^5.90.0",
+    "webpack": "^5.92.1",
     "webpack-cli": "^5.1.4"
   }
 }
