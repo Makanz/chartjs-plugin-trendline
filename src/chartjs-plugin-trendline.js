@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 2.1.0
+ * Version: 2.1.2
  *
  * Copyright 2024 Marcus Alsterfjord
  * Released under the MIT license
@@ -54,9 +54,14 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     let fillColor = dataset.trendlineLinear.fillColor;
 
     const chartOptions = datasetMeta.controller.chart.options;
-    const parsingOptions = typeof chartOptions.parsing === 'object' ? chartOptions.parsing : undefined;
-    const xAxisKey = dataset.trendlineLinear.xAxisKey || parsingOptions?.xAxisKey || 'x';
-    const yAxisKey = dataset.trendlineLinear.yAxisKey || parsingOptions?.yAxisKey || 'y';
+    const parsingOptions =
+        typeof chartOptions.parsing === 'object'
+            ? chartOptions.parsing
+            : undefined;
+    const xAxisKey =
+        dataset.trendlineLinear.xAxisKey || parsingOptions?.xAxisKey || 'x';
+    const yAxisKey =
+        dataset.trendlineLinear.yAxisKey || parsingOptions?.yAxisKey || 'y';
 
     let fitter = new LineFitter();
     let firstIndex = dataset.data.findIndex((d) => {
