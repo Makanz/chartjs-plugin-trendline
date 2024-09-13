@@ -145,10 +145,21 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
 
     ctx.lineWidth = lineWidth;
 
-    if (lineStyle === 'dotted') {
-        ctx.setLineDash([2, 3]); // Dotted
-    } else {
-        ctx.setLineDash([]); // Solid
+    // line styles
+    switch (lineStyle) {
+        case 'dotted':
+            ctx.setLineDash([2, 2]); // Dotted
+            break;
+        case 'dashed':
+            ctx.setLineDash([8, 3]); // Dashed
+            break;
+        case 'dashdot':
+            ctx.setLineDash([8, 3, 2, 3]); // Dash-dot
+            break;
+        case 'solid':
+        default:
+            ctx.setLineDash([]); // Solid
+            break;
     }
 
     ctx.beginPath();
