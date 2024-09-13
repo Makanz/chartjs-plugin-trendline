@@ -36,7 +36,7 @@ To configure the trendline plugin you simply add a new config options to your da
 	trendlineLinear: {
 		colorMin: "red",
 		colorMax: "green",
-		lineStyle: "dotted|solid",
+		lineStyle: "dotted|solid|dashed|dashdot",
 		width: 2,
 		xAxisKey: "time" (optional),
 		yAxisKey: "usage" (optional),
