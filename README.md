@@ -34,13 +34,34 @@ To configure the trendline plugin you simply add a new config options to your da
 ```javascript
 {
 	trendlineLinear: {
-		colorMin: "red",
-		colorMax: "green",
-		lineStyle: "dotted|solid|dashed|dashdot",
-		width: 2,
-		xAxisKey: "time" (optional),
-		yAxisKey: "usage" (optional),
-		projection: true|false (optional)
+		colorMin: Color
+		colorMax: Color,
+		lineStyle: string, // "dotted" | "solid" | "dashed" | "dashdot"
+		width: number,
+		xAxisKey: string, // optional
+		yAxisKey: string, // optional
+		projection: boolean, // optional
+		// optional
+		label: {
+			color: Color,
+			text: string,
+			display: boolean,
+			displayValue: boolean,
+			offset: number,
+			font: {
+				family: string
+				size: number,
+			}
+		},
+		// optional
+		legend: {
+			text: string,
+            strokeStyle: Color,
+			fillStyle: Color,
+			lineCap: string,
+			lineDash: number[],
+			lineWidth: number,
+		}
 	}
 }
 ```
@@ -49,6 +70,7 @@ To configure the trendline plugin you simply add a new config options to your da
 
 -   bar
 -   line
+-   scatter
 
 ## Contributing
 
