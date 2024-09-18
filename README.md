@@ -49,7 +49,7 @@ To configure the trendline plugin you simply add a new config options to your da
 			displayValue: boolean,
 			offset: number,
 			font: {
-				family: string
+				family: string,
 				size: number,
 			}
 		},
