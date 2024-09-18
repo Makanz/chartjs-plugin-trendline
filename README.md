@@ -56,7 +56,7 @@ To configure the trendline plugin you simply add a new config options to your da
 		// optional
 		legend: {
 			text: string,
-            strokeStyle: Color,
+			strokeStyle: Color,
 			fillStyle: Color,
 			lineCap: string,
 			lineDash: number[],
