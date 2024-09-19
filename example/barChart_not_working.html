@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>BarChart Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
+    <script src="./../src/chartjs-plugin-trendline.js"></script>
+    <script>
+            
+    const datasets = [{
+	data: [
+            { x: '202309', y: 144214.8 },
+            { x: '202310', y: 144514.8 },
+            { x: '202311', y: 150626 },
+            { x: '202312', y: 204523 },
+            { x: '202401', y: 125402 },
+            { x: '202402', y: 225232 },
+            { x: '202403', y: 2786435 },
+            { x: '202404', y: 584833 },
+        ],
+	label: 'Usage Not Working!',
+	yAxisID: 'y',
+	lineTension: 0,
+	borderWidth: 2,
+	trendlineLinear: {
+		colorMin: '#ff0000',
+		colorMax: '#00ff00',
+		lineStyle: 'dotted',
+		width: 2,
+		yAxisKey: 'y',
+		xAxisKey: 'x',
+		projection: true,
+	},
+}, ]
+    const chartConfig = {
+        type: 'line',
+        data: {
+            datasets: datasets
+        },
+        options: {
+            scales: {
+                x: {
+                    ticks: {
+                        padding: 8
+                    },
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Usage',
+                        padding: 8,
+                    },
+                },
+            },
+        },
+        plugins: [pluginTrendlineLinear],
+    };
+
+            document.addEventListener("DOMContentLoaded", function(event) {
+                 // Bar chart
+                    new Chart(document.getElementById("bar-chart"), chartConfig);
+                });
+        </script>
+</head>
+<body>
+    <h1>Bar Chart</h1>
+
+    <div style="width: 800px;">
+        <canvas id="bar-chart"></canvas>
+    </div>
+
+    <p>Using example code from <a href="http://tobiasahlin.com/blog/chartjs-charts-to-get-you-started/" target="_blank">tobiasahlin.com.</a></p>
+</body>
+</html>
