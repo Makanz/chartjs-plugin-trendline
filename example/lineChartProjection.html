@@ -1,52 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>XYlineChart Projection Example</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
     <script src="./../src/chartjs-plugin-trendline.js"></script>
     <script>
-            document.addEventListener("DOMContentLoaded", function(event) {
-                new Chart(document.getElementById("line-chart"), {
-                        type: 'line',
-                        data: {
-                            datasets: [{ 
-                                data: [{x: 0, y: 30}, {x: 5, y:25}, {x: 10, y: 23}, {x: 25, y: 23}, {x: 35, y: 17}, {x: 45, y: 17}],
-                                label: "Count",
-                                borderColor: "#3e95cd",
-                                fill: false,
-                                trendlineLinear: {
-                                    colorMin: "#3e95cd",
-                                    lineStyle: "line",
-                                    width: 1,
-                                    projection: true
-                                }
-                            }, 
-                            {
-                                data: [{x: 60, y: 0}],
-                                borderColor: "black",
-                                label: "Goal",
-                                fill: false
-                            }]
-                        },
-                        options: {
-                            title: {
-                                display: true,
-                                text: 'Cigarettes per days',
-                            },
-                            maintainAspectRatio: true,
-                            responsive: true,
-                            scales: { 
-                                x: { type: 'linear', position: 'bottom', scaleLabel: { labelString: 'days', display: true}},
-                                y: { type: 'linear', position: 'left',   scaleLabel: { labelString: 'cigarretts/day', display: true}, display: true },
-                            }
+        document.addEventListener("DOMContentLoaded", function (event) {
+            new Chart(document.getElementById("line-chart"), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        data: [{ x: 0, y: 30 }, { x: 5, y: 25 }, { x: 10, y: 23 }, { x: 25, y: 23 }, { x: 35, y: 17 }, { x: 45, y: 17 }],
+                        label: "Count",
+                        borderColor: "#3e95cd",
+                        fill: false,
+                        trendlineLinear: {
+                            colorMin: "#3e95cd",
+                            lineStyle: "line",
+                            width: 1,
+                            projection: true
                         }
-                        });
-                });
-        </script>
+                    },
+                    {
+                        data: [{ x: 60, y: 0 }],
+                        borderColor: "black",
+                        label: "Goal",
+                        fill: false
+                    }]
+                },
+                options: {
+                    title: {
+                        display: true,
+                        text: 'Cigarettes per days',
+                    },
+                    maintainAspectRatio: true,
+                    responsive: true,
+                    scales: {
+                        x: { type: 'linear', position: 'bottom', scaleLabel: { labelString: 'days', display: true } },
+                        y: { type: 'linear', position: 'left', scaleLabel: { labelString: 'cigarretts/day', display: true }, display: true },
+                    }
+                }
+            });
+        });
+    </script>
 </head>
+
 <body>
     <h1>X/Y Chart with trendline projection on x axis</h1>
 
@@ -55,4 +57,5 @@
     </div>
 
 </body>
+
 </html>
