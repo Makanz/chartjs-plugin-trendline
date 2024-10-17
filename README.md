@@ -48,6 +48,7 @@ To configure the trendline plugin you simply add a new config options to your da
 			display: boolean,
 			displayValue: boolean,
 			offset: number,
+			percentage: boolean,
 			font: {
 				family: string,
 				size: number,
