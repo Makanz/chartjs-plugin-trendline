@@ -1,7 +1,7 @@
 # chartjs-plugin-trendline
 
 This plugin draws an linear trendline in your Chart.
-It has been tested with Chart.js version 4.4.3.
+It has been tested with Chart.js version 4.4.4.
 
 ## Installation
 
@@ -10,7 +10,7 @@ It has been tested with Chart.js version 4.4.3.
 Load Chart.js first, then the plugin which will automatically register itself with Chart.js
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
 ```
 
@@ -48,6 +48,7 @@ To configure the trendline plugin you simply add a new config options to your da
 			display: boolean,
 			displayValue: boolean,
 			offset: number,
+			percentage: boolean,
 			font: {
 				family: string,
 				size: number,

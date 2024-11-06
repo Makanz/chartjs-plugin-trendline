@@ -1,6 +1,6 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 2.1.5
+ * Version: 2.1.6
  *
  * Copyright 2024 Marcus Alsterfjord
  * Released under the MIT license
@@ -122,6 +122,7 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         display = true,
         displayValue = true,
         offset = 10,
+        percentage = false,
     } = dataset.trendlineLinear.label || {};
 
     const {
@@ -218,7 +219,9 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     // Add the label to the trendline if it's populated and not set to hidden
     if (dataset.trendlineLinear.label && display !== false) {
         const trendText = displayValue
-            ? `${text} (Slope: ${slope.toFixed(2)})`
+            ? `${text} (Slope: ${
+                  percentage ? (slope * 100).toFixed(2) + '%' : slope.toFixed(2)
+              })`
             : text;
         addTrendlineLabel(
             ctx,
@@ -267,7 +270,10 @@ const addTrendlineLabel = (
     ctx.font = `${size}px ${family}`;
     ctx.fillStyle = labelColor;
 
-    // Calculate label position (middle of the trendline)
+    // Label width
+    const labelWidth = ctx.measureText(label).width;
+
+    // Calculate the center of the trendline
     const labelX = (x1 + x2) / 2;
     const labelY = (y1 + y2) / 2;
 
@@ -280,8 +286,12 @@ const addTrendlineLabel = (
     // Rotate the context to align with the trendline
     ctx.rotate(angle);
 
+    // Adjust for the length of the label and rotation
+    const adjustedX = -labelWidth / 2; // Center the label horizontally
+    const adjustedY = offset; // Adjust Y to compensate for the height
+
     // Draw the label
-    ctx.fillText(label, 0, -offset);
+    ctx.fillText(label, adjustedX, adjustedY);
 
     // Restore the canvas state
     ctx.restore();
