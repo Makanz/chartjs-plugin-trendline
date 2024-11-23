@@ -34,7 +34,7 @@ To configure the trendline plugin you simply add a new config options to your da
 ```javascript
 {
 	trendlineLinear: {
-		colorMin: Color
+		colorMin: Color,
 		colorMax: Color,
 		lineStyle: string, // "dotted" | "solid" | "dashed" | "dashdot"
 		width: number,
