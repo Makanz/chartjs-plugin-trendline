@@ -81,3 +81,7 @@ For bugs and feature requests, [please create an issue](https://github.com/Makan
 ## License
 
 chartjs-plugin-trendline.js is available under the [MIT license](http://opensource.org/licenses/MIT).
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Makanz/chartjs-plugin-trendline&type=Date)](https://star-history.com/#Makanz/chartjs-plugin-trendline&Date)
