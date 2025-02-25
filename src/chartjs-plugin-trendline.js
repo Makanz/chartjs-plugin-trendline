@@ -145,10 +145,9 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         (d) => d !== undefined && d !== null
     );
     let lastIndex = dataset.data.length - 1;
-    let startPos = datasetMeta.data[firstIndex]?.[xAxisKey];
-    let endPos = datasetMeta.data[lastIndex]?.[xAxisKey];
     let xy = typeof dataset.data[firstIndex] === 'object';
 
+    // Collect data points for the fitter
     dataset.data.forEach((data, index) => {
         if (data == null) return;
 
@@ -172,9 +171,9 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         }
     });
 
+    // Calculate the pixel coordinates for the trendline
     let x1 = xScale.getPixelForValue(fitter.minx);
     let y1 = yScale.getPixelForValue(fitter.f(fitter.minx));
-
     let x2, y2;
 
     // Projection logic for trendline
@@ -188,54 +187,55 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         y2 = yScale.getPixelForValue(fitter.f(fitter.maxx));
     }
 
-    if (isFinite(startPos) || isFinite(endPos)) {
-        x1 = startPos;
-        x2 = endPos;
-    }
-
+    // Do not use startPos and endPos directly, as they may be undefined
+    // This was causing the vertical line issue
+    
     const drawBottom = datasetMeta.controller.chart.chartArea.bottom;
     const chartWidth = datasetMeta.controller.chart.width;
 
-    adjustLineForOverflow({ x1, y1, x2, y2, drawBottom, chartWidth });
+    // Only adjust line for overflow if coordinates are valid
+    if (isFinite(x1) && isFinite(y1) && isFinite(x2) && isFinite(y2)) {
+        adjustLineForOverflow({ x1, y1, x2, y2, drawBottom, chartWidth });
 
-    // Set line width and styles
-    ctx.lineWidth = lineWidth;
-    setLineStyle(ctx, lineStyle);
+        // Set line width and styles
+        ctx.lineWidth = lineWidth;
+        setLineStyle(ctx, lineStyle);
 
-    // Draw the trendline
-    drawTrendline({ ctx, x1, y1, x2, y2, colorMin, colorMax });
+        // Draw the trendline
+        drawTrendline({ ctx, x1, y1, x2, y2, colorMin, colorMax });
 
-    // Optionally fill below the trendline
-    if (fillColor) {
-        fillBelowTrendline(ctx, x1, y1, x2, y2, drawBottom, fillColor);
-    }
+        // Optionally fill below the trendline
+        if (fillColor) {
+            fillBelowTrendline(ctx, x1, y1, x2, y2, drawBottom, fillColor);
+        }
 
-    // Calculate the angle of the trendline
-    const angle = Math.atan2(y2 - y1, x2 - x1);
+        // Calculate the angle of the trendline
+        const angle = Math.atan2(y2 - y1, x2 - x1);
 
-    // Calculate the slope of the trendline (value of trend)
-    const slope = (y1 - y2) / (x2 - x1);
+        // Calculate the slope of the trendline (value of trend)
+        const slope = (y1 - y2) / (x2 - x1);
 
-    // Add the label to the trendline if it's populated and not set to hidden
-    if (dataset.trendlineLinear.label && display !== false) {
-        const trendText = displayValue
-            ? `${text} (Slope: ${
-                  percentage ? (slope * 100).toFixed(2) + '%' : slope.toFixed(2)
-              })`
-            : text;
-        addTrendlineLabel(
-            ctx,
-            trendText,
-            x1,
-            y1,
-            x2,
-            y2,
-            angle,
-            color,
-            family,
-            size,
-            offset
-        );
+        // Add the label to the trendline if it's populated and not set to hidden
+        if (dataset.trendlineLinear.label && display !== false) {
+            const trendText = displayValue
+                ? `${text} (Slope: ${
+                      percentage ? (slope * 100).toFixed(2) + '%' : slope.toFixed(2)
+                  })`
+                : text;
+            addTrendlineLabel(
+                ctx,
+                trendText,
+                x1,
+                y1,
+                x2,
+                y2,
+                angle,
+                color,
+                family,
+                size,
+                offset
+            );
+        }
     }
 };
 
