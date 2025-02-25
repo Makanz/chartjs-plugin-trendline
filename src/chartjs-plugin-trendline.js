@@ -362,15 +362,27 @@ const setLineStyle = (ctx, lineStyle) => {
  * @param {string} params.colorMax - The ending color of the trendline gradient.
  */
 const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
+    // Ensure all values are finite numbers
+    if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
+        console.warn("Cannot draw trendline: coordinates contain non-finite values", { x1, y1, x2, y2 });
+        return;
+    }
+    
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
 
-    let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-    gradient.addColorStop(0, colorMin);
-    gradient.addColorStop(1, colorMax);
-
-    ctx.strokeStyle = gradient;
+    try {
+        let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, colorMin);
+        gradient.addColorStop(1, colorMax);
+        ctx.strokeStyle = gradient;
+    } catch (e) {
+        // Fallback to solid color if gradient creation fails
+        console.warn("Gradient creation failed, using solid color:", e);
+        ctx.strokeStyle = colorMin;
+    }
+    
     ctx.stroke();
     ctx.closePath();
 };
@@ -386,6 +398,12 @@ const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
  * @param {string} fillColor - The color to fill below the trendline.
  */
 const fillBelowTrendline = (ctx, x1, y1, x2, y2, drawBottom, fillColor) => {
+    // Ensure all values are finite numbers
+    if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2) || !isFinite(drawBottom)) {
+        console.warn("Cannot fill below trendline: coordinates contain non-finite values", { x1, y1, x2, y2, drawBottom });
+        return;
+    }
+    
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
