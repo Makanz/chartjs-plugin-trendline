@@ -137,8 +137,8 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
             : undefined;
     const xAxisKey =
         dataset.trendlineLinear?.xAxisKey || parsingOptions?.xAxisKey || 'x';
-    const yAxisKey =
-        dataset.trendlineLinear?.yAxisKey || parsingOptions?.yAxisKey || 'y';
+    const yAxisKeys = dataset.trendlineLinear?.yAxisKey ||
+        parsingOptions?.yAxisKey || ['y'];
 
     let fitter = new LineFitter();
     let firstIndex = dataset.data.findIndex(
@@ -155,17 +155,21 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         if (['time', 'timeseries'].includes(xScale.options.type)) {
             let x = data[xAxisKey] != null ? data[xAxisKey] : data.t;
             if (x !== undefined) {
-                fitter.add(new Date(x).getTime(), data[yAxisKey]);
+                yAxisKeys.forEach((yAxisKey) => {
+                    if (data[yAxisKey] != null) {
+                        fitter.add(new Date(x).getTime(), data[yAxisKey]);
+                    }
+                });
             } else {
                 fitter.add(index, data);
             }
         } else if (xy) {
-            if (!isNaN(data.x) && !isNaN(data.y)) {
-                fitter.add(data.x, data.y);
-            } else if (!isNaN(data.x)) {
-                fitter.add(index, data.x);
-            } else if (!isNaN(data.y)) {
-                fitter.add(index, data.y);
+            if (!isNaN(data.x)) {
+                yAxisKeys.forEach((yAxisKey) => {
+                    if (!isNaN(data[yAxisKey])) {
+                        fitter.add(data.x, data[yAxisKey]);
+                    }
+                });
             }
         } else {
             fitter.add(index, data);
@@ -470,12 +474,25 @@ class LineFitter {
     }
 }
 
+const customLabelPlugin = {
+    id: 'customLabelPlugin',
+    afterDatasetsDraw: function (chart) {
+        // omitted
+        console.log(
+            'customLabelPlugin',
+            chart.config._config.data.datasets[0].data
+        );
+    },
+};
+
 // If we're in the browser and have access to the global Chart obj, register plugin automatically
 if (typeof window !== 'undefined' && window.Chart) {
     if (window.Chart.hasOwnProperty('register')) {
         window.Chart.register(pluginTrendlineLinear);
+        window.Chart.register(customLabelPlugin);
     } else {
         window.Chart.plugins.register(pluginTrendlineLinear);
+        window.Chart.plugins.register(customLabelPlugin);
     }
 }
 
