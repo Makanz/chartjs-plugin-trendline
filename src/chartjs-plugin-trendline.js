@@ -189,7 +189,7 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
 
     // Do not use startPos and endPos directly, as they may be undefined
     // This was causing the vertical line issue
-    
+
     const drawBottom = datasetMeta.controller.chart.chartArea.bottom;
     const chartWidth = datasetMeta.controller.chart.width;
 
@@ -219,7 +219,9 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         if (dataset.trendlineLinear.label && display !== false) {
             const trendText = displayValue
                 ? `${text} (Slope: ${
-                      percentage ? (slope * 100).toFixed(2) + '%' : slope.toFixed(2)
+                      percentage
+                          ? (slope * 100).toFixed(2) + '%'
+                          : slope.toFixed(2)
                   })`
                 : text;
             addTrendlineLabel(
@@ -364,10 +366,13 @@ const setLineStyle = (ctx, lineStyle) => {
 const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
     // Ensure all values are finite numbers
     if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
-        console.warn("Cannot draw trendline: coordinates contain non-finite values", { x1, y1, x2, y2 });
+        console.warn(
+            'Cannot draw trendline: coordinates contain non-finite values',
+            { x1, y1, x2, y2 }
+        );
         return;
     }
-    
+
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
@@ -379,10 +384,10 @@ const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
         ctx.strokeStyle = gradient;
     } catch (e) {
         // Fallback to solid color if gradient creation fails
-        console.warn("Gradient creation failed, using solid color:", e);
+        console.warn('Gradient creation failed, using solid color:', e);
         ctx.strokeStyle = colorMin;
     }
-    
+
     ctx.stroke();
     ctx.closePath();
 };
@@ -399,11 +404,20 @@ const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
  */
 const fillBelowTrendline = (ctx, x1, y1, x2, y2, drawBottom, fillColor) => {
     // Ensure all values are finite numbers
-    if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2) || !isFinite(drawBottom)) {
-        console.warn("Cannot fill below trendline: coordinates contain non-finite values", { x1, y1, x2, y2, drawBottom });
+    if (
+        !isFinite(x1) ||
+        !isFinite(y1) ||
+        !isFinite(x2) ||
+        !isFinite(y2) ||
+        !isFinite(drawBottom)
+    ) {
+        console.warn(
+            'Cannot fill below trendline: coordinates contain non-finite values',
+            { x1, y1, x2, y2, drawBottom }
+        );
         return;
     }
-    
+
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
