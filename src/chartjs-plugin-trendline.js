@@ -107,6 +107,9 @@ const getScales = (chartInstance) => {
  * @param {Scale} yScale - The y-axis scale object.
  */
 const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
+    const yAxisID = dataset.yAxisID || 'y'; // Default to 'y' if no yAxisID is specified
+    const yScaleToUse = datasetMeta.controller.chart.scales[yAxisID] || yScale;
+
     const defaultColor = dataset.borderColor || 'rgba(169,169,169, .6)';
     const {
         colorMin = defaultColor,
@@ -173,7 +176,7 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
 
     // Calculate the pixel coordinates for the trendline
     let x1 = xScale.getPixelForValue(fitter.minx);
-    let y1 = yScale.getPixelForValue(fitter.f(fitter.minx));
+    let y1 = yScaleToUse.getPixelForValue(fitter.f(fitter.minx));
     let x2, y2;
 
     // Projection logic for trendline
@@ -181,10 +184,10 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         let x2value = fitter.fo();
         if (x2value < fitter.minx) x2value = fitter.maxx;
         x2 = xScale.getPixelForValue(x2value);
-        y2 = yScale.getPixelForValue(fitter.f(x2value));
+        y2 = yScaleToUse.getPixelForValue(fitter.f(x2value));
     } else {
         x2 = xScale.getPixelForValue(fitter.maxx);
-        y2 = yScale.getPixelForValue(fitter.f(fitter.maxx));
+        y2 = yScaleToUse.getPixelForValue(fitter.f(fitter.maxx));
     }
 
     // Do not use startPos and endPos directly, as they may be undefined
