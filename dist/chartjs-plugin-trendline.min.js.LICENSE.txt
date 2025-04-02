@@ -1,8 +1,8 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 2.1.6
+ * Version: 2.1.7
  *
- * Copyright 2024 Marcus Alsterfjord
+ * Copyright 2025 Marcus Alsterfjord
  * Released under the MIT license
  * https://github.com/Makanz/chartjs-plugin-trendline/blob/master/README.md
  *
