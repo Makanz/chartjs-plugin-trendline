@@ -1,8 +1,8 @@
 /*!
  * chartjs-plugin-trendline.js
- * Version: 2.1.6
+ * Version: 2.1.7
  *
- * Copyright 2024 Marcus Alsterfjord
+ * Copyright 2025 Marcus Alsterfjord
  * Released under the MIT license
  * https://github.com/Makanz/chartjs-plugin-trendline/blob/master/README.md
  *
@@ -107,6 +107,9 @@ const getScales = (chartInstance) => {
  * @param {Scale} yScale - The y-axis scale object.
  */
 const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
+    const yAxisID = dataset.yAxisID || 'y'; // Default to 'y' if no yAxisID is specified
+    const yScaleToUse = datasetMeta.controller.chart.scales[yAxisID] || yScale;
+
     const defaultColor = dataset.borderColor || 'rgba(169,169,169, .6)';
     const {
         colorMin = defaultColor,
@@ -145,10 +148,9 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         (d) => d !== undefined && d !== null
     );
     let lastIndex = dataset.data.length - 1;
-    let startPos = datasetMeta.data[firstIndex]?.[xAxisKey];
-    let endPos = datasetMeta.data[lastIndex]?.[xAxisKey];
     let xy = typeof dataset.data[firstIndex] === 'object';
 
+    // Collect data points for the fitter
     dataset.data.forEach((data, index) => {
         if (data == null) return;
 
@@ -172,9 +174,9 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         }
     });
 
+    // Calculate the pixel coordinates for the trendline
     let x1 = xScale.getPixelForValue(fitter.minx);
-    let y1 = yScale.getPixelForValue(fitter.f(fitter.minx));
-
+    let y1 = yScaleToUse.getPixelForValue(fitter.f(fitter.minx));
     let x2, y2;
 
     // Projection logic for trendline
@@ -182,60 +184,63 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         let x2value = fitter.fo();
         if (x2value < fitter.minx) x2value = fitter.maxx;
         x2 = xScale.getPixelForValue(x2value);
-        y2 = yScale.getPixelForValue(fitter.f(x2value));
+        y2 = yScaleToUse.getPixelForValue(fitter.f(x2value));
     } else {
         x2 = xScale.getPixelForValue(fitter.maxx);
-        y2 = yScale.getPixelForValue(fitter.f(fitter.maxx));
+        y2 = yScaleToUse.getPixelForValue(fitter.f(fitter.maxx));
     }
 
-    if (isFinite(startPos) || isFinite(endPos)) {
-        x1 = startPos;
-        x2 = endPos;
-    }
+    // Do not use startPos and endPos directly, as they may be undefined
+    // This was causing the vertical line issue
 
     const drawBottom = datasetMeta.controller.chart.chartArea.bottom;
     const chartWidth = datasetMeta.controller.chart.width;
 
-    adjustLineForOverflow({ x1, y1, x2, y2, drawBottom, chartWidth });
+    // Only adjust line for overflow if coordinates are valid
+    if (isFinite(x1) && isFinite(y1) && isFinite(x2) && isFinite(y2)) {
+        adjustLineForOverflow({ x1, y1, x2, y2, drawBottom, chartWidth });
 
-    // Set line width and styles
-    ctx.lineWidth = lineWidth;
-    setLineStyle(ctx, lineStyle);
+        // Set line width and styles
+        ctx.lineWidth = lineWidth;
+        setLineStyle(ctx, lineStyle);
 
-    // Draw the trendline
-    drawTrendline({ ctx, x1, y1, x2, y2, colorMin, colorMax });
+        // Draw the trendline
+        drawTrendline({ ctx, x1, y1, x2, y2, colorMin, colorMax });
 
-    // Optionally fill below the trendline
-    if (fillColor) {
-        fillBelowTrendline(ctx, x1, y1, x2, y2, drawBottom, fillColor);
-    }
+        // Optionally fill below the trendline
+        if (fillColor) {
+            fillBelowTrendline(ctx, x1, y1, x2, y2, drawBottom, fillColor);
+        }
 
-    // Calculate the angle of the trendline
-    const angle = Math.atan2(y2 - y1, x2 - x1);
+        // Calculate the angle of the trendline
+        const angle = Math.atan2(y2 - y1, x2 - x1);
 
-    // Calculate the slope of the trendline (value of trend)
-    const slope = (y1 - y2) / (x2 - x1);
+        // Calculate the slope of the trendline (value of trend)
+        const slope = (y1 - y2) / (x2 - x1);
 
-    // Add the label to the trendline if it's populated and not set to hidden
-    if (dataset.trendlineLinear.label && display !== false) {
-        const trendText = displayValue
-            ? `${text} (Slope: ${
-                  percentage ? (slope * 100).toFixed(2) + '%' : slope.toFixed(2)
-              })`
-            : text;
-        addTrendlineLabel(
-            ctx,
-            trendText,
-            x1,
-            y1,
-            x2,
-            y2,
-            angle,
-            color,
-            family,
-            size,
-            offset
-        );
+        // Add the label to the trendline if it's populated and not set to hidden
+        if (dataset.trendlineLinear.label && display !== false) {
+            const trendText = displayValue
+                ? `${text} (Slope: ${
+                      percentage
+                          ? (slope * 100).toFixed(2) + '%'
+                          : slope.toFixed(2)
+                  })`
+                : text;
+            addTrendlineLabel(
+                ctx,
+                trendText,
+                x1,
+                y1,
+                x2,
+                y2,
+                angle,
+                color,
+                family,
+                size,
+                offset
+            );
+        }
     }
 };
 
@@ -362,15 +367,30 @@ const setLineStyle = (ctx, lineStyle) => {
  * @param {string} params.colorMax - The ending color of the trendline gradient.
  */
 const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
+    // Ensure all values are finite numbers
+    if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
+        console.warn(
+            'Cannot draw trendline: coordinates contain non-finite values',
+            { x1, y1, x2, y2 }
+        );
+        return;
+    }
+
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
 
-    let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-    gradient.addColorStop(0, colorMin);
-    gradient.addColorStop(1, colorMax);
+    try {
+        let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, colorMin);
+        gradient.addColorStop(1, colorMax);
+        ctx.strokeStyle = gradient;
+    } catch (e) {
+        // Fallback to solid color if gradient creation fails
+        console.warn('Gradient creation failed, using solid color:', e);
+        ctx.strokeStyle = colorMin;
+    }
 
-    ctx.strokeStyle = gradient;
     ctx.stroke();
     ctx.closePath();
 };
@@ -386,6 +406,21 @@ const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
  * @param {string} fillColor - The color to fill below the trendline.
  */
 const fillBelowTrendline = (ctx, x1, y1, x2, y2, drawBottom, fillColor) => {
+    // Ensure all values are finite numbers
+    if (
+        !isFinite(x1) ||
+        !isFinite(y1) ||
+        !isFinite(x2) ||
+        !isFinite(y2) ||
+        !isFinite(drawBottom)
+    ) {
+        console.warn(
+            'Cannot fill below trendline: coordinates contain non-finite values',
+            { x1, y1, x2, y2, drawBottom }
+        );
+        return;
+    }
+
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
