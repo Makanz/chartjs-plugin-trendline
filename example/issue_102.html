@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart.js Example</title>
+    <!-- Include Chart.js and the Trendline plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../src/chartjs-plugin-trendline.js"></script>
+</head>
+<body>
+
+<!-- Canvas element for rendering the chart -->
+<canvas id="chartjs" width="400" height="200"></canvas>
+
+<script type="text/javascript">
+    // Define colors
+    const barColor1 = '#258cda';  // Blue color for incidents
+    const borderColor1 = '#258cda';  // Same as backgroundColor for incidents
+    const barColor2 = '#cccccc';  // Gray color for outage
+    const borderColor2 = '#808080';  // Darker gray for borderColor of outage
+
+    // Get the context of the canvas element we want to select
+    const ctx = document.getElementById("chartjs").getContext('2d');
+
+    // Create a new Chart instance
+    const myChart1 = new Chart(ctx, {
+        type: 'bar', // Specify chart type (e.g., bar)
+        
+        data: {
+            labels:  ["July 2024","August 2024","September 2024","October 2024","November 2024","December 2024","January 2025","February 2025","March 2025","April 2025","May 2025","June 2025"],  // Example labels for x-axis
+            datasets: [
+                {
+                    label: '# of Incidents',
+                    yAxisID: 'y1',
+                    fill: false,
+                    backgroundColor: barColor1,
+                    borderColor: borderColor1,
+                    borderWidth: 3,
+                    tension: 0.3,
+                    data: [7,6,13,6,4,3,4,4,0,0,0,0],  // Example data for incidents
+                    trendlineLinear: {
+                        lineStyle: 'dotted',
+                        width: 2
+                    },
+                },
+                {
+                    label: 'Total Outage',
+                    yAxisID: 'y2',
+                    fill: true,
+                    backgroundColor: barColor2,
+                    borderColor: borderColor2,
+                    borderWidth: 3,
+                    tension: 0.3,
+                    data: [112,201,316,16,16,13,11,81,20,300,250,200],  // Example data for outage in hours
+                    trendlineLinear: {
+                        lineStyle: 'dotted',
+                        width: 2
+                    },
+                }
+            ],
+        },
+
+        options: {
+            plugins: {
+                legend: {
+                    position: 'bottom', // Position of the legend
+                },
+            },
+            tooltips: {
+                displayColors: true, // Display color in tooltip
+                mode: 'index',       // Tooltip mode
+            },
+            scales: {
+                x: { // X-axis configuration
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 12,
+                        maxRotation: 45,
+                        minRotation: 45,
+                    },
+                },
+                y1: { // Left Y-axis for incidents
+                    ticks: {
+                        beginAtZero: true,
+                    },
+                    title: {
+                        display: true,
+                        text: 'Incidents',
+                    },
+                    type: 'linear',
+                    position: 'left',
+                },
+                y2: { // Right Y-axis for outage in hours
+                    ticks: {
+                        beginAtZero: true,
+                    },
+                    title: {
+                        display: true,
+                        text: 'Outage in Hours',
+                    },
+                    type: 'linear',
+                    position: 'right',
+                }
+            },
+            responsive: true,    // Make the chart responsive
+            maintainAspectRatio: true,  // Maintain aspect ratio
+        }
+    });
+</script>
+
+</body>
+</html>
