@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart.js Example</title>
+    <!-- Include Chart.js and the Trendline plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="../src/chartjs-plugin-trendline.js"></script>
+</head>
+<body>
+
+<!-- Canvas element for rendering the chart -->
+<canvas id="chartjs" width="400" height="200"></canvas>
+
+<script type="text/javascript">
+    // Define colors
+    const barColor1 = '#258cda';  // Blue color for incidents
+    const borderColor1 = '#258cda';  // Same as backgroundColor for incidents
+    const barColor2 = '#cccccc';  // Gray color for outage
+    const borderColor2 = '#808080';  // Darker gray for borderColor of outage
+
+    // Get the context of the canvas element we want to select
+    const ctx = document.getElementById("chartjs").getContext('2d');
+
+    const chartDynamics = [
+  {
+    datepost: "2025-03-01T00:00:00",
+    quantity: 75,
+  },
+  {
+    datepost: "2025-03-02T00:00:00",
+    quantity: 64,
+  },
+  {
+    datepost: "2025-03-03T00:00:00",
+    quantity: 52,
+  },
+  {
+    datepost: "2025-03-04T00:00:00",
+    quantity: 23,
+  },
+  {
+    datepost: "2025-03-05T00:00:00",
+    quantity: 44,
+  },
+  {
+    datepost: "2025-03-06T00:00:00",
+    quantity: 38,
+  },
+  {
+    datepost: "2025-03-07T00:00:00",
+    quantity: 44,
+  },
+  {
+    datepost: "2025-03-08T00:00:00",
+    quantity: 41,
+  },
+  {
+    datepost: "2025-03-09T00:00:00",
+    quantity: 78,
+  },
+  {
+    datepost: "2025-03-10T00:00:00",
+    quantity: 31,
+  },
+];
+
+    // Create a new Chart instance
+    const myChart1 = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: chartDynamics.map((o) => o.datepost),
+            datasets: [
+            {
+                label: "total",
+                data: chartDynamics.map((o) => o.quantity),
+                borderWidth: 1,
+                pointStyle: false,
+                trendlineLinear: { lineStyle: "dotted", width: 2 },
+            },
+            ],
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+            x: { type: "time", time: { tooltipFormat: "d", minUnit: "day" } },
+            },
+            interaction: { mode: "nearest", intersect: false },
+            plugins: {
+            legend: { display: false },
+            autocolors: { enabled: false },
+            datalabels: { display: false },
+            },
+        },
+    });
+
+</script>
+
+</body>
+</html>
