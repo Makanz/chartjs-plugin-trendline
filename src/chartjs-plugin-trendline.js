@@ -148,6 +148,8 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         (d) => d !== undefined && d !== null
     );
     let lastIndex = dataset.data.length - 1;
+    let startPos = datasetMeta.data[firstIndex]?.[xAxisKey];
+    let endPos = datasetMeta.data[lastIndex]?.[xAxisKey];
     let xy = typeof dataset.data[firstIndex] === 'object';
 
     // Collect data points for the fitter
@@ -175,7 +177,9 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     });
 
     // Calculate the pixel coordinates for the trendline
-    let x1 = xScale.getPixelForValue(fitter.minx);
+    let x1 = isFinite(startPos)
+        ? startPos
+        : xScale.getPixelForValue(fitter.minx);
     let y1 = yScaleToUse.getPixelForValue(fitter.f(fitter.minx));
     let x2, y2;
 
@@ -186,12 +190,9 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         x2 = xScale.getPixelForValue(x2value);
         y2 = yScaleToUse.getPixelForValue(fitter.f(x2value));
     } else {
-        x2 = xScale.getPixelForValue(fitter.maxx);
+        x2 = isFinite(endPos) ? endPos : xScale.getPixelForValue(fitter.maxx);
         y2 = yScaleToUse.getPixelForValue(fitter.f(fitter.maxx));
     }
-
-    // Do not use startPos and endPos directly, as they may be undefined
-    // This was causing the vertical line issue
 
     const drawBottom = datasetMeta.controller.chart.chartArea.bottom;
     const chartWidth = datasetMeta.controller.chart.width;
