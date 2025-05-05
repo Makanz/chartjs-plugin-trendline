@@ -21,6 +21,7 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         width: lineWidth = dataset.borderWidth || 3,
         lineStyle = 'solid',
         fillColor = false,
+        trendoffset = 0,
     } = dataset.trendlineLinear || {};
 
     const {
@@ -48,17 +49,27 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         dataset.trendlineLinear?.yAxisKey || parsingOptions?.yAxisKey || 'y';
 
     let fitter = new LineFitter();
-    let firstIndex = dataset.data.findIndex(
-        (d) => d !== undefined && d !== null
-    );
+    
+    // Handle trendoffset
+    if (Math.abs(trendoffset) >= dataset.data.length) trendoffset = 0;
+    
+    // Calculate firstIndex based on trendoffset
+    let firstIndex = ((trendoffset < 0) ? dataset.data.length : 0) + trendoffset + dataset.data.slice(trendoffset).findIndex((d) => {
+        return d !== undefined && d !== null;
+    });
+    
     let lastIndex = dataset.data.length - 1;
     let startPos = datasetMeta.data[firstIndex]?.[xAxisKey];
     let endPos = datasetMeta.data[lastIndex]?.[xAxisKey];
     let xy = typeof dataset.data[firstIndex] === 'object';
 
-    // Collect data points for the fitter
+    // Collect data points for the fitter, respecting the trendoffset
     dataset.data.forEach((data, index) => {
         if (data == null) return;
+        
+        // Skip data points outside the offset range
+        if (trendoffset > 0 && index < firstIndex) return;
+        if (trendoffset < 0 && index < dataset.data.length + trendoffset) return;
 
         if (['time', 'timeseries'].includes(xScale.options.type)) {
             let x = data[xAxisKey] != null ? data[xAxisKey] : data.t;
