@@ -41,6 +41,7 @@ To configure the trendline plugin you simply add a new config options to your da
 		xAxisKey: string, // optional
 		yAxisKey: string, // optional
 		projection: boolean, // optional
+		trendoffset: number, // optional, if > 0 skips first n elements, if < 0 uses last n elements
 		// optional
 		label: {
 			color: Color,
