@@ -1,20 +1,20 @@
 # chartjs-plugin-trendline
 
 This plugin draws an linear trendline in your Chart.
-It has been tested with Chart.js version 4.4.9.
+It has been tested with Chart.js version 4.4.4.
 
 ## Installation
 
-#### Load directly in the browser
+### Load directly in the browser
 
 Load Chart.js first, then the plugin which will automatically register itself with Chart.js
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
 ```
 
-#### As a Chart.JS plugin
+### As a Chart.JS plugin
 
 Install & import the plugin via npm:
 
@@ -33,46 +33,46 @@ To configure the trendline plugin you simply add a new config options to your da
 
 ```javascript
 {
-	trendlineLinear: {
-		colorMin: Color,
-		colorMax: Color,
-		lineStyle: string, // "dotted" | "solid" | "dashed" | "dashdot"
-		width: number,
-		xAxisKey: string, // optional
-		yAxisKey: string, // optional
-		projection: boolean, // optional
-		trendoffset: number, // optional, if > 0 skips first n elements, if < 0 uses last n elements
-		// optional
-		label: {
-			color: Color,
-			text: string,
-			display: boolean,
-			displayValue: boolean,
-			offset: number,
-			percentage: boolean,
-			font: {
-				family: string,
-				size: number,
-			}
-		},
-		// optional
-		legend: {
-			text: string,
-			strokeStyle: Color,
-			fillStyle: Color,
-			lineCap: string,
-			lineDash: number[],
-			lineWidth: number,
-		}
-	}
+    trendlineLinear: {
+        colorMin: Color,
+        colorMax: Color,
+        lineStyle: string, // "dotted" | "solid" | "dashed" | "dashdot"
+        width: number,
+        xAxisKey: string, // optional
+        yAxisKey: string, // optional
+        projection: boolean, // optional
+        trendoffset: number, // optional, if > 0 skips first n elements, if < 0 uses last n elements
+        // optional
+        label: {
+            color: Color,
+            text: string,
+            display: boolean,
+            displayValue: boolean,
+            offset: number,
+            percentage: boolean,
+            font: {
+                family: string,
+                size: number,
+            }
+        },
+        // optional
+        legend: {
+            text: string,
+            strokeStyle: Color,
+            fillStyle: Color,
+            lineCap: string,
+            lineDash: number[],
+            lineWidth: number,
+        }
+    }
 }
 ```
 
 ## Supported chart types
 
--   bar
--   line
--   scatter
+- bar
+- line
+- scatter
 
 ## Contributing
 
