@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Logarithmic Trendline Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+    <script src="../dist/chartjs-plugin-trendline.min.js"></script>
+    <style>
+        .chart-container {
+            width: 800px;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <canvas id="logarithmic-chart"></canvas>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            new Chart(document.getElementById('logarithmic-chart'), {
+                type: 'line',
+                data: {
+                    labels: [1, 10, 100, 1000, 10000, 100000],
+                    datasets: [{
+                        label: 'Logarithmic Data',
+                        data: [5, 10, 15, 20, 25, 30],
+                        borderColor: '#3cba9f',
+                        fill: false,
+                        trendlineLogarithmic: {
+                            colorMin: '#3cba9f',
+                            colorMax: '#e8c3b9',
+                            lineStyle: 'dashed',
+                            width: 2,
+                            label: {
+                                text: 'Log Fit',
+                                displayValue: true
+                            }
+                        }
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'logarithmic'
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Logarithmic Trendline Example'
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

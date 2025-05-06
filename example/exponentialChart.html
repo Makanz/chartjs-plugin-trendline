@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exponential Trendline Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+    <script src="../dist/chartjs-plugin-trendline.min.js"></script>
+    <style>
+        .chart-container {
+            width: 800px;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <canvas id="exponential-chart"></canvas>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            new Chart(document.getElementById('exponential-chart'), {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Viral Growth',
+                        data: [10, 25, 60, 150, 400, 1000, 2500],
+                        borderColor: '#3e95cd',
+                        fill: false,
+                        trendlineExponential: {
+                            colorMin: '#3e95cd',
+                            colorMax: '#8e5ea2',
+                            lineStyle: 'solid',
+                            width: 2,
+                            label: {
+                                text: 'Exponential Fit',
+                                displayValue: true
+                            }
+                        }
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            type: 'logarithmic'
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Exponential Trendline Example'
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

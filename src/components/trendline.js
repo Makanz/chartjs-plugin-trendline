@@ -1,5 +1,13 @@
-import { LineFitter } from '../utils/lineFitter';
-import { drawTrendline, fillBelowTrendline, setLineStyle } from '../utils/drawing';
+import {
+    LineFitter,
+    ExponentialFitter,
+    LogarithmicFitter,
+} from '../utils/lineFitter';
+import {
+    drawTrendline,
+    fillBelowTrendline,
+    setLineStyle,
+} from '../utils/drawing';
 import { addTrendlineLabel } from './label';
 
 /**
@@ -10,7 +18,14 @@ import { addTrendlineLabel } from './label';
  * @param {Scale} xScale - The x-axis scale object.
  * @param {Scale} yScale - The y-axis scale object.
  */
-export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
+export const addFitter = (
+    datasetMeta,
+    ctx,
+    dataset,
+    xScale,
+    yScale,
+    FitterClass = LineFitter
+) => {
     const yAxisID = dataset.yAxisID || 'y'; // Default to 'y' if no yAxisID is specified
     const yScaleToUse = datasetMeta.controller.chart.scales[yAxisID] || yScale;
 
@@ -48,16 +63,25 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     const yAxisKey =
         dataset.trendlineLinear?.yAxisKey || parsingOptions?.yAxisKey || 'y';
 
-    let fitter = new LineFitter();
-    
+    let fitter;
+    try {
+        fitter = new FitterClass();
+    } catch (e) {
+        console.warn(`Failed to create ${FitterClass.name} fitter:`, e);
+        return;
+    }
+
     // Handle trendoffset
     if (Math.abs(trendoffset) >= dataset.data.length) trendoffset = 0;
-    
+
     // Calculate firstIndex based on trendoffset
-    let firstIndex = ((trendoffset < 0) ? dataset.data.length : 0) + trendoffset + dataset.data.slice(trendoffset).findIndex((d) => {
-        return d !== undefined && d !== null;
-    });
-    
+    let firstIndex =
+        (trendoffset < 0 ? dataset.data.length : 0) +
+        trendoffset +
+        dataset.data.slice(trendoffset).findIndex((d) => {
+            return d !== undefined && d !== null;
+        });
+
     let lastIndex = dataset.data.length - 1;
     let startPos = datasetMeta.data[firstIndex]?.[xAxisKey];
     let endPos = datasetMeta.data[lastIndex]?.[xAxisKey];
@@ -66,28 +90,36 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     // Collect data points for the fitter, respecting the trendoffset
     dataset.data.forEach((data, index) => {
         if (data == null) return;
-        
+
         // Skip data points outside the offset range
         if (trendoffset > 0 && index < firstIndex) return;
-        if (trendoffset < 0 && index < dataset.data.length + trendoffset) return;
+        if (trendoffset < 0 && index < dataset.data.length + trendoffset)
+            return;
 
-        if (['time', 'timeseries'].includes(xScale.options.type)) {
-            let x = data[xAxisKey] != null ? data[xAxisKey] : data.t;
-            if (x !== undefined) {
-                fitter.add(new Date(x).getTime(), data[yAxisKey]);
+        try {
+            if (['time', 'timeseries'].includes(xScale.options.type)) {
+                let x = data[xAxisKey] != null ? data[xAxisKey] : data.t;
+                if (x !== undefined) {
+                    fitter.add(new Date(x).getTime(), data[yAxisKey]);
+                } else {
+                    fitter.add(index, data);
+                }
+            } else if (xy) {
+                if (!isNaN(data.x) && !isNaN(data.y)) {
+                    fitter.add(data.x, data.y);
+                } else if (!isNaN(data.x)) {
+                    fitter.add(index, data.x);
+                } else if (!isNaN(data.y)) {
+                    fitter.add(index, data.y);
+                }
             } else {
                 fitter.add(index, data);
             }
-        } else if (xy) {
-            if (!isNaN(data.x) && !isNaN(data.y)) {
-                fitter.add(data.x, data.y);
-            } else if (!isNaN(data.x)) {
-                fitter.add(index, data.x);
-            } else if (!isNaN(data.y)) {
-                fitter.add(index, data.y);
-            }
-        } else {
-            fitter.add(index, data);
+        } catch (e) {
+            console.warn(
+                `Failed to add data point to ${FitterClass.name} fitter:`,
+                e
+            );
         }
     });
 
@@ -188,4 +220,4 @@ const adjustLineForOverflow = ({ x1, y1, x2, y2, drawBottom, chartWidth }) => {
         y2 = drawBottom;
         x2 = chartWidth - (x2 - subtraction);
     }
-}; 
+};

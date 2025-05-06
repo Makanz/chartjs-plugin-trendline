@@ -1,5 +1,6 @@
 import { addFitter } from '../components/trendline';
 import { getScales } from '../utils/drawing';
+import { ExponentialFitter, LogarithmicFitter } from '../utils/lineFitter';
 
 export const pluginTrendlineLinear = {
     id: 'chartjs-plugin-trendline',
@@ -13,13 +14,46 @@ export const pluginTrendlineLinear = {
                 dataset.alwaysShowTrendline ||
                 chartInstance.isDatasetVisible(index);
 
-            if (
-                dataset.trendlineLinear &&
-                showTrendline &&
-                dataset.data.length > 1
-            ) {
-                const datasetMeta = chartInstance.getDatasetMeta(index);
-                addFitter(datasetMeta, ctx, dataset, xScale, yScale);
+            if (!showTrendline || dataset.data.length <= 1) return;
+
+            const datasetMeta = chartInstance.getDatasetMeta(index);
+
+            try {
+                if (dataset.trendlineLinear) {
+                    addFitter(
+                        datasetMeta,
+                        ctx,
+                        dataset,
+                        xScale,
+                        yScale,
+                        LineFitter
+                    );
+                }
+                if (dataset.trendlineExponential) {
+                    addFitter(
+                        datasetMeta,
+                        ctx,
+                        dataset,
+                        xScale,
+                        yScale,
+                        ExponentialFitter
+                    );
+                }
+                if (dataset.trendlineLogarithmic) {
+                    addFitter(
+                        datasetMeta,
+                        ctx,
+                        dataset,
+                        xScale,
+                        yScale,
+                        LogarithmicFitter
+                    );
+                }
+            } catch (error) {
+                console.warn(
+                    `Failed to draw trendline for dataset ${index}:`,
+                    error
+                );
             }
         });
 
@@ -31,10 +65,10 @@ export const pluginTrendlineLinear = {
         const datasets = chartInstance.data.datasets;
 
         datasets.forEach((dataset) => {
-            if (dataset.trendlineLinear && dataset.trendlineLinear.label) {
-                const label = dataset.trendlineLinear.label;
+            const updateLegend = (trendlineType, config) => {
+                if (!config?.label) return;
 
-                // Access chartInstance to update legend labels
+                const label = config.label;
                 const originalGenerateLabels =
                     chartInstance.legend.options.labels.generateLabels;
 
@@ -42,13 +76,14 @@ export const pluginTrendlineLinear = {
                     chart
                 ) {
                     const defaultLabels = originalGenerateLabels(chart);
+                    const legendConfig = config.legend;
 
-                    const legendConfig = dataset.trendlineLinear.legend;
-
-                    // Display the legend is it's populated and not set to hidden
+                    // Display the legend if it's populated and not set to hidden
                     if (legendConfig && legendConfig.display !== false) {
                         defaultLabels.push({
-                            text: legendConfig.text || label + ' (Trendline)',
+                            text:
+                                legendConfig.text ||
+                                `${label} (${trendlineType} Trendline)`,
                             strokeStyle:
                                 legendConfig.color ||
                                 dataset.borderColor ||
@@ -61,7 +96,17 @@ export const pluginTrendlineLinear = {
                     }
                     return defaultLabels;
                 };
+            };
+
+            if (dataset.trendlineLinear) {
+                updateLegend('Linear', dataset.trendlineLinear);
+            }
+            if (dataset.trendlineExponential) {
+                updateLegend('Exponential', dataset.trendlineExponential);
+            }
+            if (dataset.trendlineLogarithmic) {
+                updateLegend('Logarithmic', dataset.trendlineLogarithmic);
             }
         });
     },
-}; 
+};
