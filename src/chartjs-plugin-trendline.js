@@ -45,11 +45,7 @@ const pluginTrendlineLinear = {
                 dataset.alwaysShowTrendline ||
                 chartInstance.isDatasetVisible(index);
 
-            if (
-                dataset.trendlineLinear &&
-                showTrendline &&
-                dataset.data.length > 1
-            ) {
+            if (showTrendline && dataset.data.length > 1) {
                 const datasetMeta = chartInstance.getDatasetMeta(index);
                 addFitter(datasetMeta, ctx, dataset, xScale, yScale);
             }
