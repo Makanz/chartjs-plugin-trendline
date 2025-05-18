@@ -25,16 +25,27 @@ const pluginTrendlineLinear = {
         const ctx = chartInstance.ctx;
         const { xScale, yScale } = getScales(chartInstance);
 
-        chartInstance.data.datasets.forEach((dataset, index) => {
+        const sortedDatasets = chartInstance.data.datasets
+            .map((dataset, index) => ({ dataset, index }))
+            .filter((entry) => entry.dataset.trendlineLinear)
+            .sort((a, b) => {
+                const orderA = a.dataset.order ?? 0;
+                const orderB = b.dataset.order ?? 0;
+
+                // Push 0-order datasets to the end (they draw last / on top)
+                if (orderA === 0 && orderB !== 0) return 1;
+                if (orderB === 0 && orderA !== 0) return -1;
+
+                // Otherwise, draw lower order first
+                return orderA - orderB;
+            });
+
+        sortedDatasets.forEach(({ dataset, index }) => {
             const showTrendline =
                 dataset.alwaysShowTrendline ||
                 chartInstance.isDatasetVisible(index);
 
-            if (
-                dataset.trendlineLinear &&
-                showTrendline &&
-                dataset.data.length > 1
-            ) {
+            if (showTrendline && dataset.data.length > 1) {
                 const datasetMeta = chartInstance.getDatasetMeta(index);
                 addFitter(datasetMeta, ctx, dataset, xScale, yScale);
             }
