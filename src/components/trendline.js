@@ -21,8 +21,9 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         width: lineWidth = dataset.borderWidth || 3,
         lineStyle = 'solid',
         fillColor = false,
-        trendoffset = 0,
+        // trendoffset is now handled separately
     } = dataset.trendlineLinear || {};
+    let trendoffset = (dataset.trendlineLinear || {}).trendoffset || 0;
 
     const {
         color = defaultColor,
@@ -72,22 +73,36 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         if (trendoffset < 0 && index < dataset.data.length + trendoffset) return;
 
         if (['time', 'timeseries'].includes(xScale.options.type)) {
-            let x = data[xAxisKey] != null ? data[xAxisKey] : data.t;
-            if (x !== undefined) {
-                fitter.add(new Date(x).getTime(), data[yAxisKey]);
-            } else {
-                fitter.add(index, data);
+            let x = data[xAxisKey] != null ? data[xAxisKey] : data.t; // data.t is a fallback
+            const yValue = data[yAxisKey];
+
+            // For timeseries, we need a valid time value for x and a valid numeric value for y.
+            // x !== undefined was the original check for x, but also check yValue.
+            if (x != null && x !== undefined && yValue != null && !isNaN(yValue)) {
+                fitter.add(new Date(x).getTime(), yValue);
             }
-        } else if (xy) {
-            if (!isNaN(data.x) && !isNaN(data.y)) {
-                fitter.add(data.x, data.y);
-            } else if (!isNaN(data.x)) {
-                fitter.add(index, data.x);
-            } else if (!isNaN(data.y)) {
-                fitter.add(index, data.y);
+            // If x is undefined or null, or yValue is invalid, the point is skipped for timeseries.
+            // The original 'else { fitter.add(index, data) }' was problematic for object data in timeseries.
+        } else if (xy) { // xy is true if typeof dataset.data[firstIndex] === 'object'
+            const xVal = data[xAxisKey];
+            const yVal = data[yAxisKey];
+
+            const xIsValid = xVal != null && !isNaN(xVal);
+            const yIsValid = yVal != null && !isNaN(yVal);
+
+            if (xIsValid && yIsValid) {
+                fitter.add(xVal, yVal);
+            } else if (xIsValid) { // yVal is invalid or null
+                fitter.add(index, xVal); // Use index for X, xVal for Y (matches original behavior pattern)
+            } else if (yIsValid) { // xVal is invalid or null
+                fitter.add(index, yVal); // Use index for X, yVal for Y (matches original behavior pattern)
             }
+            // If both xVal and yVal are invalid, the point is skipped.
         } else {
-            fitter.add(index, data);
+            // This branch is for non-object data (e.g. array of numbers)
+            if (data != null && !isNaN(data)) {
+                 fitter.add(index, data);
+            }
         }
     });
 
