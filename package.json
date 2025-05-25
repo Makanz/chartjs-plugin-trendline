@@ -1,8 +1,8 @@
 {
   "name": "chartjs-plugin-trendline",
-  "version": "2.1.9",
+  "version": "3.0.0",
   "description": "Trendline for Chart.js",
-  "main": "src/chartjs-plugin-trendline.js",
+  "main": "src/index.js",
   "scripts": {
     "build": "webpack --mode=production"
   },
