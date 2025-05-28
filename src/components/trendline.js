@@ -136,6 +136,11 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     });
 
     // --- Trendline Coordinate Calculation ---
+    // Ensure there are enough points to form a trendline.
+    if (fitter.count < 2) {
+        return; // Not enough data points to calculate a trendline.
+    }
+
     // These variables will hold the pixel coordinates for drawing the trendline.
     let x1_px, y1_px, x2_px, y2_px; 
 
@@ -143,82 +148,66 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
 
     // Determine trendline start/end points based on the 'projection' option.
     if (dataset.trendlineLinear.projection) {
-        // Projected trendline: Extends to the edges of the chart's data coordinate system.
         const slope = fitter.slope();
         const intercept = fitter.intercept();
-        let points = []; // Stores potential {x, y} data points for the line ends, in data values.
+        let points = []; 
 
-        // Calculate intersections of the trendline with the chart boundaries.
-        // These calculations use data values, not pixel values directly.
-        // Avoid division by zero for vertical or near-vertical lines when calculating x from y.
-        if (Math.abs(slope) > 1e-6) { // If the line is not perfectly horizontal.
-            // Intersection with top boundary (y-value from chartArea.top, converted to data scale).
+        if (Math.abs(slope) > 1e-6) { 
             const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
-            const x_at_top = (val_y_top - intercept) / slope; // x = (y - c) / m
+            const x_at_top = (val_y_top - intercept) / slope; 
             points.push({ x: x_at_top, y: val_y_top });
 
-            // Intersection with bottom boundary (y-value from chartArea.bottom, converted to data scale).
             const val_y_bottom = yScaleToUse.getValueForPixel(chartArea.bottom);
-            const x_at_bottom = (val_y_bottom - intercept) / slope; // x = (y - c) / m
+            const x_at_bottom = (val_y_bottom - intercept) / slope; 
             points.push({ x: x_at_bottom, y: val_y_bottom });
-        } else { // Line is horizontal (slope is effectively zero).
-            // For a horizontal line, y is constant (the intercept).
-            // The line extends from the leftmost to the rightmost data values of the chart area.
+        } else { 
              points.push({ x: xScale.getValueForPixel(chartArea.left), y: intercept});
              points.push({ x: xScale.getValueForPixel(chartArea.right), y: intercept});
         }
 
-        // Intersection with left boundary (x-value from chartArea.left, converted to data scale).
         const val_x_left = xScale.getValueForPixel(chartArea.left);
-        const y_at_left = fitter.f(val_x_left); // y = m*x + c
+        const y_at_left = fitter.f(val_x_left); 
         points.push({ x: val_x_left, y: y_at_left });
 
-        // Intersection with right boundary (x-value from chartArea.right, converted to data scale).
         const val_x_right = xScale.getValueForPixel(chartArea.right);
-        const y_at_right = fitter.f(val_x_right); // y = m*x + c
+        const y_at_right = fitter.f(val_x_right); 
         points.push({ x: val_x_right, y: y_at_right });
         
-        // Filter calculated intersection points: only keep those within the chart's actual data value range.
-        // This ensures that only intersections on the visible chart segments are considered.
-        const chartMinX = xScale.getValueForPixel(chartArea.left); // Min X data value on chart
-        const chartMaxX = xScale.getValueForPixel(chartArea.right); // Max X data value on chart
-        const chartMinY = yScaleToUse.getValueForPixel(chartArea.bottom); // Min Y data value (yScale is inverted in pixels)
-        const chartMaxY = yScaleToUse.getValueForPixel(chartArea.top);    // Max Y data value
-
+        const chartMinX = xScale.getValueForPixel(chartArea.left); 
+        const chartMaxX = xScale.getValueForPixel(chartArea.right); 
+        
+        const yValsFromPixels = [yScaleToUse.getValueForPixel(chartArea.top), yScaleToUse.getValueForPixel(chartArea.bottom)];
+        const finiteYVals = yValsFromPixels.filter(y => isFinite(y));
+        // Ensure actualChartMinY and actualChartMaxY are correctly ordered for the filter
+        const actualChartMinY = finiteYVals.length > 0 ? Math.min(...finiteYVals) : -Infinity; 
+        const actualChartMaxY = finiteYVals.length > 0 ? Math.max(...finiteYVals) : Infinity;
+        
         let validPoints = points.filter(p => 
-            p.x >= chartMinX && p.x <= chartMaxX && p.y >= chartMinY && p.y <= chartMaxY
+            isFinite(p.x) && isFinite(p.y) && 
+            p.x >= chartMinX && p.x <= chartMaxX && p.y >= actualChartMinY && p.y <= actualChartMaxY
         );
-
-        // Remove duplicate points (e.g., if an intersection point is also a corner of the chart area).
-        // This can happen if the trendline passes exactly through a corner.
+        
         validPoints = validPoints.filter((point, index, self) =>
             index === self.findIndex((t) => (
-                Math.abs(t.x - point.x) < 1e-4 && Math.abs(t.y - point.y) < 1e-4 // Tolerance for float comparison
+                Math.abs(t.x - point.x) < 1e-4 && Math.abs(t.y - point.y) < 1e-4 
             ))
         );
         
         if (validPoints.length >= 2) {
-            // Sort points (e.g., by x-coordinate, then y) to pick the two extremes that define the line segment.
             validPoints.sort((a,b) => a.x - b.x || a.y - b.y); 
 
-            // Convert these two chosen data points (which are in data values) to pixel coordinates for drawing.
             x1_px = xScale.getPixelForValue(validPoints[0].x);
             y1_px = yScaleToUse.getPixelForValue(validPoints[0].y);
             x2_px = xScale.getPixelForValue(validPoints[validPoints.length - 1].x);
             y2_px = yScaleToUse.getPixelForValue(validPoints[validPoints.length - 1].y);
         } else {
-            // Fallback: Not enough valid intersection points (line likely entirely outside chart area, or error).
-            // Setting coordinates to NaN prevents drawing.
             x1_px = NaN; y1_px = NaN; x2_px = NaN; y2_px = NaN;
         }
 
     } else {
-        // Non-projected trendline: Drawn only between the min and max x-values of the *fitted data points*.
-        // It does not extend to the edges of the chart area unless min/max x of data coincide with chart edges.
-        const y_at_minx = fitter.f(fitter.minx); // y = slope * min_x_of_data + intercept
-        const y_at_maxx = fitter.f(fitter.maxx); // y = slope * max_x_of_data + intercept
+        const y_at_minx = fitter.f(fitter.minx); 
+        const y_at_maxx = fitter.f(fitter.maxx); 
 
-        // Convert these min/max data points to pixel coordinates.
         x1_px = xScale.getPixelForValue(fitter.minx);
         y1_px = yScaleToUse.getPixelForValue(y_at_minx);
         x2_px = xScale.getPixelForValue(fitter.maxx);
@@ -226,60 +215,43 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     }
 
     // --- Line Clipping and Drawing ---
-    // At this point, x1_px, y1_px, x2_px, y2_px are calculated (in pixels) based on projection or non-projection.
-    // Apply Liang-Barsky clipping algorithm to ensure the line segment stays within the drawable chartArea.
-
     let clippedCoords = null;
-    // Ensure coordinates are finite numbers before attempting to clip.
     if (isFinite(x1_px) && isFinite(y1_px) && isFinite(x2_px) && isFinite(y2_px)) {
-        // liangBarskyClip operates on pixel coordinates against the pixel-defined chartArea.
         clippedCoords = liangBarskyClip(x1_px, y1_px, x2_px, y2_px, chartArea);
+    } else {
     }
 
-    // Only proceed with drawing if the line is valid and clipping results in a visible line segment.
     if (clippedCoords) {
         x1_px = clippedCoords.x1;
         y1_px = clippedCoords.y1;
         x2_px = clippedCoords.x2;
         y2_px = clippedCoords.y2;
 
-        // Ensure the clipped line has a non-zero length (e.g., > 0.5 pixels) to be drawn.
-        // This avoids drawing artifacts for lines that are clipped to what is effectively a single point.
         if (Math.abs(x1_px - x2_px) < 0.5 && Math.abs(y1_px - y2_px) < 0.5) { 
-            // Line is too short to be drawn or is clipped to a point, effectively invisible.
         } else {
-            // Set line width and visual styles for drawing.
             ctx.lineWidth = lineWidth;
             setLineStyle(ctx, lineStyle);
-
-            // Draw the (now clipped) trendline.
             drawTrendline({ ctx, x1: x1_px, y1: y1_px, x2: x2_px, y2: y2_px, colorMin, colorMax });
 
-            // Optionally fill the area below the trendline.
             if (fillColor) {
                 fillBelowTrendline(ctx, x1_px, y1_px, x2_px, y2_px, chartArea.bottom, fillColor);
             }
 
-            // Calculate the angle of the final (clipped) trendline for label positioning.
             const angle = Math.atan2(y2_px - y1_px, x2_px - x1_px);
-
-            // Use `fitter.slope()` for the label text. This ensures consistency with the underlying data model,
-            // as the pixel-based slope of the drawn line can vary due to projection and clipping.
             const displaySlope = fitter.slope();
 
-            // Add the label to the trendline if configured to be displayed.
             if (dataset.trendlineLinear.label && display !== false) {
                 const trendText = displayValue
                     ? `${text} (Slope: ${
                           percentage
-                              ? (displaySlope * 100).toFixed(2) + '%' // Display as percentage if opted
+                              ? (displaySlope * 100).toFixed(2) + '%' 
                               : displaySlope.toFixed(2)
                       })`
                     : text;
                 addTrendlineLabel(
                     ctx,
                     trendText,
-                    x1_px, // Use final clipped coordinates for label positioning.
+                    x1_px, 
                     y1_px,
                     x2_px,
                     y2_px,
@@ -291,6 +263,7 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
                 );
             }
         }
+    } else {
     }
 };
 
