@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Scatter Chart Trendline Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.js"></script>
+  <script src="../dist/chartjs-plugin-trendline.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      new Chart(document.getElementById("scatter-chart"), {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: "Sample Data",
+              data: [
+                {x: 12.39, y: 130},
+                {x: 12.39, y: 142},
+                {x: 11.39, y: 170},
+                {x: 13.14, y: 12268},
+                {x: 13.14, y: 9947}
+              ],
+              backgroundColor: "#3e95cd",
+              trendlineLinear: {
+                colorMin: "rgba(255,105,180, .8)",
+                lineStyle: "dotted",
+                width: 2
+              }
+            }
+          ]
+        },
+        options: {
+          plugins: {
+            legend: { display: true },
+            title: {
+              display: true,
+              text: 'Scatter Chart with Trendline'
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'bottom',
+              title: {
+                display: true,
+                text: 'X Value'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Y Value'
+              }
+            }
+          }
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1>Scatter Chart Example</h1>
+  <div style="width: 800px;">
+    <canvas id="scatter-chart"></canvas>
+  </div>
+</body>
+</html>

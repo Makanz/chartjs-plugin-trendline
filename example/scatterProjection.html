@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Scatter Chart Trendline Projection Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.js"></script>
+  <script src="../dist/chartjs-plugin-trendline.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      new Chart(document.getElementById("scatter-projection-chart"), {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              trendlineLinear: {
+                width: 1,
+                lineStyle: 'solid',
+                colorMin: '#555555',
+                colorMax: '#555555',
+                projection: true
+              },
+              backgroundColor: '#a51212',
+              label: 'test',
+              data: [
+                {x: 2, y: 1},
+                {x: 2.5, y: 2},
+                {x: 1.5, y: 3},
+                {x: 2, y: 4}
+              ]
+            }
+          ]
+        },
+        options: {
+          plugins: {
+            legend: { display: true },
+            title: {
+              display: true,
+              text: 'Scatter Chart with Trendline Projection'
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'bottom',
+              min: 0,
+              max: 4,
+              title: {
+                text: 'x',
+              }
+            },
+            y: {
+              type: 'linear',
+              position: 'left',
+              min: 0,
+              title: {
+                text: 'y',
+              }
+            }
+          }
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1>Scatter Chart Example (Projection)</h1>
+  <div style="width: 800px;">
+    <canvas id="scatter-projection-chart"></canvas>
+  </div>
+</body>
+</html>
