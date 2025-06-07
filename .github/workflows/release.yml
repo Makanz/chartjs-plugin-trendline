@@ -1,0 +1,61 @@
+name: release
+
+on:
+    push:
+        tags:
+            - 'v*' # Ex: v1.2.3 → publish as latest
+            - 'beta/*' # Ex: beta/1.2.3-beta.1 → publish as beta
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+                  registry-url: 'https://registry.npmjs.org/'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build
+              run: npm run build
+
+            - name: Verify package.json version matches tag
+              run: |
+                  PKG_VERSION=$(node -p "require('./package.json').version")
+                  TAG_NAME=${GITHUB_REF#refs/tags/}
+
+                  # Hantera både vX.X.X och beta/X.X.X-beta.X
+                  if [[ "$TAG_NAME" == beta/* ]]; then
+                    TAG_VERSION=${TAG_NAME#beta/}
+                  else
+                    TAG_VERSION=${TAG_NAME#v}
+                  fi
+
+                  echo "Package version: $PKG_VERSION"
+                  echo "Tag version:     $TAG_VERSION"
+
+                  if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+                    echo "::error ::❌ Version mismatch: package.json=$PKG_VERSION ≠ tag=$TAG_VERSION"
+                    exit 1
+                  else
+                    echo "✅ Version match confirmed"
+                  fi
+
+            - name: Publish to npm (beta)
+              if: startsWith(github.ref, 'refs/tags/beta/')
+              run: npm publish --tag beta
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+            - name: Publish to npm (latest)
+              if: startsWith(github.ref, 'refs/tags/v')
+              run: npm publish
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
