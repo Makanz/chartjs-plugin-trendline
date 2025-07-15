@@ -50,6 +50,7 @@ describe('addFitter', () => {
                     scales: { 'y': { getPixelForValue: jest.fn(val => val * 10), getValueForPixel: jest.fn(pixel => pixel / 10) } },
                     options: { parsing: { xAxisKey: 'x', yAxisKey: 'y' } },
                     chartArea: { top: 50, bottom: 450, left: 50, right: 750, width: 700, height: 400 },
+                    data: { labels: [] }
                 }
             },
             data: [{x:0, y:0}] 
@@ -426,6 +427,58 @@ describe('addFitter', () => {
 
         expect(mockLineFitterInstance.add).toHaveBeenCalledTimes(2);
         expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dashed');
+        expect(drawingUtils.drawTrendline).toHaveBeenCalled();
+        expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled(); // No label should be added
+    });
+
+    test('Time scale with array of numbers and no label property (issue #118)', () => {
+        // Test case for time scale with array data (like lineChartTypeTime.html)
+        mockXScale.options.type = 'time';
+        mockDataset.trendlineLinear = {
+            lineStyle: 'dotted',
+            width: 2
+        };
+        mockDataset.data = [75, 64, 52, 23, 44]; // Just numbers like in the example
+        mockDatasetMeta.data = [75, 64, 52, 23, 44];
+        mockDatasetMeta.controller.chart.data.labels = [
+            '2025-03-01T00:00:00',
+            '2025-03-02T00:00:00', 
+            '2025-03-03T00:00:00',
+            '2025-03-04T00:00:00',
+            '2025-03-05T00:00:00'
+        ];
+        
+        const date1 = new Date('2025-03-01T00:00:00').getTime();
+        const date5 = new Date('2025-03-05T00:00:00').getTime();
+        
+        mockLineFitterInstance.minx = date1;
+        mockLineFitterInstance.maxx = date5;
+        mockLineFitterInstance.count = 5;
+        mockLineFitterInstance.f = jest.fn(x => {
+            if (x === date1) return 75;
+            if (x === date5) return 44;
+            return 50; // approximation
+        });
+        mockXScale.getPixelForValue = jest.fn(val => {
+            if (val === date1) return 100;
+            if (val === date5) return 300;
+            return 200;
+        });
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => {
+            if (val === 75) return 200;
+            if (val === 44) return 250;
+            return 225;
+        });
+
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+
+        expect(mockLineFitterInstance.add).toHaveBeenCalledTimes(5);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(date1, 75);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(new Date('2025-03-02T00:00:00').getTime(), 64);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(new Date('2025-03-03T00:00:00').getTime(), 52);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(new Date('2025-03-04T00:00:00').getTime(), 23);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(new Date('2025-03-05T00:00:00').getTime(), 44);
+        expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dotted');
         expect(drawingUtils.drawTrendline).toHaveBeenCalled();
         expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled(); // No label should be added
     });

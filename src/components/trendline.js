@@ -101,8 +101,8 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         if (trendoffset < 0 && index >= dataset.data.length + trendoffset) return;
 
         // Process data based on scale type and data structure.
-        if (['time', 'timeseries'].includes(xScale.options.type)) {
-            // For time-based scales, convert x to a numerical timestamp; ensure y is a valid number.
+        if (['time', 'timeseries'].includes(xScale.options.type) && xy) {
+            // For time-based scales with object data, convert x to a numerical timestamp; ensure y is a valid number.
             let x = data[xAxisKey] != null ? data[xAxisKey] : data.t; // `data.t` is a Chart.js internal fallback for time data.
             const yValue = data[yAxisKey];
 
@@ -123,6 +123,15 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
                 fitter.add(xVal, yVal);
             }
             // If either xVal or yVal is invalid, the point is skipped. No fallback to using index.
+        } else if (['time', 'timeseries'].includes(xScale.options.type) && !xy) {
+            // For time-based scales with array of numbers, get the x-value from the chart labels
+            const chartLabels = datasetMeta.controller.chart.data.labels;
+            if (chartLabels && chartLabels[index] && data != null && !isNaN(data)) {
+                const timeValue = new Date(chartLabels[index]).getTime();
+                if (!isNaN(timeValue)) {
+                    fitter.add(timeValue, data);
+                }
+            }
         } else { 
             // Data is an array of numbers (or other non-object types).
             // The 'data' variable itself is the y-value, and 'index' is the x-value.
