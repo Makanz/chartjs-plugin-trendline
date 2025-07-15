@@ -353,4 +353,80 @@ describe('addFitter', () => {
         expect(drawingUtils.drawTrendline).not.toHaveBeenCalled();
         expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled();
     });
+
+    test('Configuration without label property (issue #118)', () => {
+        // Test case for user's exact configuration that was failing
+        mockDataset.trendlineLinear = {
+            lineStyle: 'dotted',
+            width: 2
+        };
+        mockDataset.data = [10, 20, 30, 40, 50];
+        mockDatasetMeta.data = [10, 20, 30, 40, 50];
+        mockLineFitterInstance.minx = 0;
+        mockLineFitterInstance.maxx = 4;
+        mockLineFitterInstance.count = 5;
+        mockLineFitterInstance.f = jest.fn(x => {
+            if (x === 0) return 100;
+            if (x === 4) return 200;
+            return x * 25 + 100;
+        });
+        mockXScale.getPixelForValue = jest.fn(val => {
+            if (val === 0) return 100;
+            if (val === 4) return 400;
+            return val * 100 + 100;
+        });
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => {
+            if (val === 100) return 200;
+            if (val === 200) return 300;
+            return val * 1 + 100;
+        });
+
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+
+        expect(mockLineFitterInstance.add).toHaveBeenCalledTimes(5);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(0, 10);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(1, 20);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(2, 30);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(3, 40);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(4, 50);
+        expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dotted');
+        expect(drawingUtils.drawTrendline).toHaveBeenCalled();
+        expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled(); // No label should be added
+    });
+
+    test('Configuration without label property but with other properties', () => {
+        // Test minimal configuration similar to issue #118
+        mockDataset.trendlineLinear = {
+            colorMin: 'red',
+            width: 3,
+            lineStyle: 'dashed'
+        };
+        mockDataset.data = [{ x: 10, y: 30 }, { x: 20, y: 50 }];
+        mockDatasetMeta.data = [{ x: 10, y: 30 }];
+        mockLineFitterInstance.minx = 10;
+        mockLineFitterInstance.maxx = 20;
+        mockLineFitterInstance.count = 2;
+        mockLineFitterInstance.f = jest.fn(x => {
+            if (x === 10) return 30;
+            if (x === 20) return 50;
+            return x * 2 + 10;
+        });
+        mockXScale.getPixelForValue = jest.fn(val => {
+            if (val === 10) return 100;
+            if (val === 20) return 200;
+            return val * 10;
+        });
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => {
+            if (val === 30) return 200;
+            if (val === 50) return 300;
+            return val * 10;
+        });
+
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+
+        expect(mockLineFitterInstance.add).toHaveBeenCalledTimes(2);
+        expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dashed');
+        expect(drawingUtils.drawTrendline).toHaveBeenCalled();
+        expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled(); // No label should be added
+    });
 });

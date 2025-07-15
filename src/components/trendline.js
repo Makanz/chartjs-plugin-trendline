@@ -32,12 +32,12 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         displayValue = true,
         offset = 10,
         percentage = false,
-    } = dataset.trendlineLinear.label || {};
+    } = (dataset.trendlineLinear && dataset.trendlineLinear.label) || {};
 
     const {
         family = "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif",
         size = 12,
-    } = dataset.trendlineLinear.label?.font || {};
+    } = (dataset.trendlineLinear && dataset.trendlineLinear.label && dataset.trendlineLinear.label.font) || {};
 
     const chartOptions = datasetMeta.controller.chart.options;
     const parsingOptions =
