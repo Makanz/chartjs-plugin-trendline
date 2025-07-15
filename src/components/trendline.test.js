@@ -50,6 +50,7 @@ describe('addFitter', () => {
                     scales: { 'y': { getPixelForValue: jest.fn(val => val * 10), getValueForPixel: jest.fn(pixel => pixel / 10) } },
                     options: { parsing: { xAxisKey: 'x', yAxisKey: 'y' } },
                     chartArea: { top: 50, bottom: 450, left: 50, right: 750, width: 700, height: 400 },
+                    data: { labels: [] }
                 }
             },
             data: [{x:0, y:0}] 
@@ -352,5 +353,133 @@ describe('addFitter', () => {
         expect(drawingUtils.setLineStyle).not.toHaveBeenCalled(); 
         expect(drawingUtils.drawTrendline).not.toHaveBeenCalled();
         expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled();
+    });
+
+    test('Configuration without label property (issue #118)', () => {
+        // Test case for user's exact configuration that was failing
+        mockDataset.trendlineLinear = {
+            lineStyle: 'dotted',
+            width: 2
+        };
+        mockDataset.data = [10, 20, 30, 40, 50];
+        mockDatasetMeta.data = [10, 20, 30, 40, 50];
+        mockLineFitterInstance.minx = 0;
+        mockLineFitterInstance.maxx = 4;
+        mockLineFitterInstance.count = 5;
+        mockLineFitterInstance.f = jest.fn(x => {
+            if (x === 0) return 100;
+            if (x === 4) return 200;
+            return x * 25 + 100;
+        });
+        mockXScale.getPixelForValue = jest.fn(val => {
+            if (val === 0) return 100;
+            if (val === 4) return 400;
+            return val * 100 + 100;
+        });
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => {
+            if (val === 100) return 200;
+            if (val === 200) return 300;
+            return val * 1 + 100;
+        });
+
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+
+        expect(mockLineFitterInstance.add).toHaveBeenCalledTimes(5);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(0, 10);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(1, 20);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(2, 30);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(3, 40);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(4, 50);
+        expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dotted');
+        expect(drawingUtils.drawTrendline).toHaveBeenCalled();
+        expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled(); // No label should be added
+    });
+
+    test('Configuration without label property but with other properties', () => {
+        // Test minimal configuration similar to issue #118
+        mockDataset.trendlineLinear = {
+            colorMin: 'red',
+            width: 3,
+            lineStyle: 'dashed'
+        };
+        mockDataset.data = [{ x: 10, y: 30 }, { x: 20, y: 50 }];
+        mockDatasetMeta.data = [{ x: 10, y: 30 }];
+        mockLineFitterInstance.minx = 10;
+        mockLineFitterInstance.maxx = 20;
+        mockLineFitterInstance.count = 2;
+        mockLineFitterInstance.f = jest.fn(x => {
+            if (x === 10) return 30;
+            if (x === 20) return 50;
+            return x * 2 + 10;
+        });
+        mockXScale.getPixelForValue = jest.fn(val => {
+            if (val === 10) return 100;
+            if (val === 20) return 200;
+            return val * 10;
+        });
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => {
+            if (val === 30) return 200;
+            if (val === 50) return 300;
+            return val * 10;
+        });
+
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+
+        expect(mockLineFitterInstance.add).toHaveBeenCalledTimes(2);
+        expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dashed');
+        expect(drawingUtils.drawTrendline).toHaveBeenCalled();
+        expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled(); // No label should be added
+    });
+
+    test('Time scale with array of numbers and no label property (issue #118)', () => {
+        // Test case for time scale with array data (like lineChartTypeTime.html)
+        mockXScale.options.type = 'time';
+        mockDataset.trendlineLinear = {
+            lineStyle: 'dotted',
+            width: 2
+        };
+        mockDataset.data = [75, 64, 52, 23, 44]; // Just numbers like in the example
+        mockDatasetMeta.data = [75, 64, 52, 23, 44];
+        mockDatasetMeta.controller.chart.data.labels = [
+            '2025-03-01T00:00:00',
+            '2025-03-02T00:00:00', 
+            '2025-03-03T00:00:00',
+            '2025-03-04T00:00:00',
+            '2025-03-05T00:00:00'
+        ];
+        
+        const date1 = new Date('2025-03-01T00:00:00').getTime();
+        const date5 = new Date('2025-03-05T00:00:00').getTime();
+        
+        mockLineFitterInstance.minx = date1;
+        mockLineFitterInstance.maxx = date5;
+        mockLineFitterInstance.count = 5;
+        mockLineFitterInstance.f = jest.fn(x => {
+            if (x === date1) return 75;
+            if (x === date5) return 44;
+            return 50; // approximation
+        });
+        mockXScale.getPixelForValue = jest.fn(val => {
+            if (val === date1) return 100;
+            if (val === date5) return 300;
+            return 200;
+        });
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => {
+            if (val === 75) return 200;
+            if (val === 44) return 250;
+            return 225;
+        });
+
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+
+        expect(mockLineFitterInstance.add).toHaveBeenCalledTimes(5);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(date1, 75);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(new Date('2025-03-02T00:00:00').getTime(), 64);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(new Date('2025-03-03T00:00:00').getTime(), 52);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(new Date('2025-03-04T00:00:00').getTime(), 23);
+        expect(mockLineFitterInstance.add).toHaveBeenCalledWith(new Date('2025-03-05T00:00:00').getTime(), 44);
+        expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dotted');
+        expect(drawingUtils.drawTrendline).toHaveBeenCalled();
+        expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled(); // No label should be added
     });
 });
