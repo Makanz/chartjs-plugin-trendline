@@ -68,7 +68,7 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
             effectiveFirstIndex = trendoffset + firstNonNullAfterOffset;
         } else {
             // All points after the offset are null or undefined, so effectively no data for trendline.
-            effectiveFirstIndex = dataset.data.length; 
+            effectiveFirstIndex = dataset.data.length;
         }
     } else {
         // For zero or negative offset, the initial search for 'xy' type detection starts from the beginning of the dataset.
@@ -78,13 +78,14 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
             effectiveFirstIndex = firstNonNull;
         } else {
             // All data in the dataset is null or undefined.
-            effectiveFirstIndex = dataset.data.length; 
+            effectiveFirstIndex = dataset.data.length;
         }
     }
-    
+
     // Determine data structure type (object {x,y} or array of numbers) based on the first valid data point.
     // This informs how `xAxisKey` and `yAxisKey` are used or if `index` is used for x-values.
-    let xy = effectiveFirstIndex < dataset.data.length && typeof dataset.data[effectiveFirstIndex] === 'object';
+    const firstNonNull = dataset.data.findIndex((d) => d !== undefined && d !== null);
+    let xy = firstNonNull !== -1 && typeof dataset.data[firstNonNull] === 'object';
 
     // Iterate over dataset to collect points for the LineFitter.
     dataset.data.forEach((data, index) => {
