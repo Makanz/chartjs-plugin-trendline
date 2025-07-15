@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm run build:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(ls:*)",
+      "Bash(npm test:*)"
+    ],
+    "deny": []
+  }
+}

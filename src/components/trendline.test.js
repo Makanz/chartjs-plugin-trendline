@@ -2,10 +2,12 @@ import { addFitter } from './trendline';
 import 'jest-canvas-mock'; 
 
 import { LineFitter } from '../utils/lineFitter';
+import { ExponentialFitter } from '../utils/exponentialFitter';
 import * as drawingUtils from '../utils/drawing';
 import * as labelUtils from './label';
 
 jest.mock('../utils/lineFitter'); 
+jest.mock('../utils/exponentialFitter');
 jest.mock('../utils/drawing', () => ({
   drawTrendline: jest.fn(),
   fillBelowTrendline: jest.fn(),
@@ -481,5 +483,307 @@ describe('addFitter', () => {
         expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dotted');
         expect(drawingUtils.drawTrendline).toHaveBeenCalled();
         expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled(); // No label should be added
+    });
+});
+
+describe('addFitter - Exponential Trendlines', () => {
+    let mockCtx;
+    let mockDatasetMeta;
+    let mockDataset;
+    let mockXScale;
+    let mockYScale;
+    let mockExponentialFitterInstance;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        
+        // Mock ExponentialFitter instance
+        mockExponentialFitterInstance = {
+            add: jest.fn(),
+            f: jest.fn(x => 2 * Math.exp(0.5 * x)), // Example: y = 2 * e^(0.5x)
+            coefficient: jest.fn(() => 2),
+            growthRate: jest.fn(() => 0.5),
+            scale: jest.fn(() => 0.5),
+            minx: undefined,
+            maxx: undefined,
+            count: 0,
+            hasValidData: true
+        };
+        ExponentialFitter.mockImplementation(() => mockExponentialFitterInstance);
+        
+        mockCtx = {
+            save: jest.fn(), translate: jest.fn(), rotate: jest.fn(), fillText: jest.fn(),
+            measureText: jest.fn(() => ({ width: 50 })), font: '', fillStyle: '',
+            strokeStyle: '', lineWidth: 0, beginPath: jest.fn(), moveTo: jest.fn(),
+            lineTo: jest.fn(), stroke: jest.fn(), restore: jest.fn(), setLineDash: jest.fn(),
+        };
+        
+        mockDatasetMeta = {
+            controller: {
+                chart: {
+                    scales: { 'y': { getPixelForValue: jest.fn(val => val * 10), getValueForPixel: jest.fn(pixel => pixel / 10) } },
+                    options: { parsing: { xAxisKey: 'x', yAxisKey: 'y' } },
+                    chartArea: { top: 50, bottom: 450, left: 50, right: 750, width: 700, height: 400 },
+                    data: { labels: [] }
+                }
+            },
+            data: [{x:0, y:0}]
+        };
+        
+        mockXScale = {
+            getPixelForValue: jest.fn(val => val * 10),
+            getValueForPixel: jest.fn(pixel => pixel / 10),
+            options: { type: 'linear' }
+        };
+        
+        mockYScale = { 
+            getPixelForValue: jest.fn(val => val * 10), 
+            getValueForPixel: jest.fn(pixel => pixel / 10) 
+        };
+        
+        mockDataset = {
+            data: [ { x: 0, y: 2 }, { x: 1, y: 3.3 }, { x: 2, y: 5.4 } ], // Exponential-like data
+            yAxisID: 'y',
+            borderColor: 'blue',
+            borderWidth: 2,
+            trendlineExponential: {
+                colorMin: 'red',
+                colorMax: 'red',
+                width: 3,
+                lineStyle: 'solid',
+                fillColor: false,
+                trendoffset: 0,
+                projection: false,
+                xAxisKey: 'x',
+                yAxisKey: 'y',
+                label: {
+                    display: true,
+                    text: 'Exponential Trend',
+                    color: 'black',
+                    offset: 5,
+                    displayValue: true,
+                    font: { family: 'Arial', size: 12 }
+                }
+            }
+        };
+    });
+
+    test('Basic exponential trendline rendering', () => {
+        mockDatasetMeta.data = [{x:0, y:2}];
+        mockExponentialFitterInstance.minx = 0;
+        mockExponentialFitterInstance.maxx = 2;
+        mockExponentialFitterInstance.count = 3;
+        mockExponentialFitterInstance.f = jest.fn(x => {
+            if (x === 0) return 2;
+            if (x === 2) return 5.4;
+            return 2 * Math.exp(0.5 * x);
+        });
+        
+        mockXScale.getPixelForValue = jest.fn(val => {
+            if (val === 0) return 50;
+            if (val === 2) return 250;
+            return val * 100 + 50;
+        });
+        
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => {
+            if (val === 2) return 200;
+            if (val === 5.4) return 340;
+            return val * 100;
+        });
+        
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+        
+        expect(ExponentialFitter).toHaveBeenCalledTimes(1);
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledTimes(3);
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(0, 2);
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(1, 3.3);
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(2, 5.4);
+        expect(drawingUtils.drawTrendline).toHaveBeenCalledWith(expect.objectContaining({
+            x1: 50, y1: 200, x2: 250, y2: 340
+        }));
+    });
+
+    test('Exponential trendline with label showing coefficient and growth rate', () => {
+        mockDatasetMeta.data = [{x:0, y:2}];
+        mockExponentialFitterInstance.minx = 0;
+        mockExponentialFitterInstance.maxx = 2;
+        mockExponentialFitterInstance.count = 3;
+        mockExponentialFitterInstance.coefficient = jest.fn(() => 2.05);
+        mockExponentialFitterInstance.growthRate = jest.fn(() => 0.48);
+        mockExponentialFitterInstance.f = jest.fn(x => {
+            if (x === 0) return 2;
+            if (x === 2) return 5.4;
+            return 2.05 * Math.exp(0.48 * x);
+        });
+        
+        mockXScale.getPixelForValue = jest.fn(val => val * 100 + 50);
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => val * 100);
+        
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+        
+        expect(labelUtils.addTrendlineLabel).toHaveBeenCalledWith(
+            mockCtx,
+            'Exponential Trend (a=2.05, b=0.48)',
+            expect.any(Number),
+            expect.any(Number),
+            expect.any(Number),
+            expect.any(Number),
+            expect.any(Number),
+            'black',
+            'Arial',
+            12,
+            5
+        );
+    });
+
+    test('Exponential trendline checks projection configuration', () => {
+        mockDataset.trendlineExponential.projection = true;
+        mockDatasetMeta.data = [{x:0, y:2}];
+        mockExponentialFitterInstance.minx = 0;
+        mockExponentialFitterInstance.maxx = 2;
+        mockExponentialFitterInstance.count = 3;
+        mockExponentialFitterInstance.f = jest.fn(x => 2 * Math.exp(0.5 * x));
+        
+        mockXScale.getValueForPixel = jest.fn(pixel => pixel / 100);
+        mockXScale.getPixelForValue = jest.fn(val => val * 100);
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => val * 100);
+        mockDatasetMeta.controller.chart.scales.y.getValueForPixel = jest.fn(pixel => pixel / 100);
+        
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+        
+        // Just verify that projection mode calls the boundary functions
+        expect(mockXScale.getValueForPixel).toHaveBeenCalledWith(50); // left boundary
+        expect(mockXScale.getValueForPixel).toHaveBeenCalledWith(750); // right boundary
+    });
+
+    test('Exponential trendline with fill color', () => {
+        mockDataset.trendlineExponential.fillColor = 'rgba(255,0,0,0.2)';
+        mockDatasetMeta.data = [{x:0, y:2}];
+        mockExponentialFitterInstance.minx = 0;
+        mockExponentialFitterInstance.maxx = 2;
+        mockExponentialFitterInstance.count = 3;
+        mockExponentialFitterInstance.f = jest.fn(x => {
+            if (x === 0) return 2;
+            if (x === 2) return 5.4;
+            return 2 * Math.exp(0.5 * x);
+        });
+        
+        mockXScale.getPixelForValue = jest.fn(val => val * 100 + 50);
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => val * 100);
+        
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+        
+        expect(drawingUtils.fillBelowTrendline).toHaveBeenCalledWith(
+            mockCtx,
+            expect.any(Number), // x1
+            expect.any(Number), // y1
+            expect.any(Number), // x2
+            expect.any(Number), // y2
+            mockDatasetMeta.controller.chart.chartArea.bottom,
+            'rgba(255,0,0,0.2)'
+        );
+    });
+
+    test('Exponential trendline with insufficient data points', () => {
+        mockDataset.data = [{ x: 0, y: 2 }]; // Only one data point
+        mockExponentialFitterInstance.count = 1;
+        
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+        
+        expect(drawingUtils.drawTrendline).not.toHaveBeenCalled();
+        expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled();
+    });
+
+    test('Exponential trendline with trendoffset', () => {
+        mockDataset.trendlineExponential.trendoffset = 1;
+        mockDataset.data = [{ x: 0, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 4 }];
+        mockDatasetMeta.data = [{x:0, y:1}];
+        mockExponentialFitterInstance.minx = 1;
+        mockExponentialFitterInstance.maxx = 2;
+        mockExponentialFitterInstance.count = 2;
+        mockExponentialFitterInstance.f = jest.fn(x => {
+            if (x === 1) return 2;
+            if (x === 2) return 4;
+            return Math.exp(x);
+        });
+        
+        mockXScale.getPixelForValue = jest.fn(val => val * 100 + 50);
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => val * 100);
+        
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+        
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledTimes(2);
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(1, 2);
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(2, 4);
+        expect(mockExponentialFitterInstance.add).not.toHaveBeenCalledWith(0, 1);
+    });
+
+    test('Exponential trendline with invalid data (hasValidData = false)', () => {
+        mockExponentialFitterInstance.hasValidData = false;
+        mockExponentialFitterInstance.count = 3;
+        
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+        
+        expect(drawingUtils.drawTrendline).not.toHaveBeenCalled();
+        expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled();
+    });
+
+    test('Exponential trendline with time scale', () => {
+        mockXScale.options.type = 'time';
+        const date1 = new Date('2023-01-01T00:00:00.000Z');
+        const date2 = new Date('2023-01-02T00:00:00.000Z');
+        const date3 = new Date('2023-01-03T00:00:00.000Z');
+        
+        mockDataset.data = [
+            { x: date1.toISOString(), y: 2 },
+            { x: date2.toISOString(), y: 4 },
+            { x: date3.toISOString(), y: 8 }
+        ];
+        mockDatasetMeta.data = [{ x: date1.toISOString(), y: 2 }];
+        
+        const date1Ts = date1.getTime();
+        const date3Ts = date3.getTime();
+        
+        mockExponentialFitterInstance.minx = date1Ts;
+        mockExponentialFitterInstance.maxx = date3Ts;
+        mockExponentialFitterInstance.count = 3;
+        mockExponentialFitterInstance.f = jest.fn(x => {
+            if (x === date1Ts) return 2;
+            if (x === date3Ts) return 8;
+            return 2 * Math.exp(0.693 * (x - date1Ts) / (24 * 60 * 60 * 1000));
+        });
+        
+        mockXScale.getPixelForValue = jest.fn(val => val / 1000000);
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => val * 100);
+        
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+        
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledTimes(3);
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(date1Ts, 2);
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(date2.getTime(), 4);
+        expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(date3Ts, 8);
+    });
+
+    test('Exponential trendline with minimal configuration (no label)', () => {
+        mockDataset.trendlineExponential = {
+            colorMin: 'blue',
+            width: 2,
+            lineStyle: 'dashed'
+        };
+        mockDataset.data = [{ x: 0, y: 1 }, { x: 1, y: 2 }];
+        mockDatasetMeta.data = [{x:0, y:1}];
+        mockExponentialFitterInstance.minx = 0;
+        mockExponentialFitterInstance.maxx = 1;
+        mockExponentialFitterInstance.count = 2;
+        mockExponentialFitterInstance.f = jest.fn(x => Math.exp(x));
+        
+        mockXScale.getPixelForValue = jest.fn(val => val * 100 + 50);
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => val * 100);
+        
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+        
+        expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dashed');
+        expect(drawingUtils.drawTrendline).toHaveBeenCalled();
+        expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled();
     });
 });

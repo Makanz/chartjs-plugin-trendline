@@ -28,6 +28,33 @@
                 lineStyle: "dotted",
                 width: 2
               }
+            },
+            {
+              label: "Exponential Growth",
+              data: [
+                {x: 1, y: 2},
+                {x: 2, y: 4},
+                {x: 3, y: 8},
+                {x: 4, y: 16},
+                {x: 5, y: 32},
+                {x: 6, y: 64}
+              ],
+              backgroundColor: "#ff6b6b",
+              trendlineExponential: {
+                colorMin: "rgba(76, 175, 80, .8)",
+                lineStyle: "solid",
+                width: 3,
+                label: {
+                  text: "Exponential Growth",
+                  display: true,
+                  displayValue: true,
+                  color: "rgba(76, 175, 80, 1)",
+                  font: {
+                    size: 12,
+                    family: "Arial"
+                  }
+                }
+              }
             }
           ]
         },
@@ -36,7 +63,7 @@
             legend: { display: true },
             title: {
               display: true,
-              text: 'Scatter Chart with Trendline'
+              text: 'Scatter Chart with Linear and Exponential Trendlines'
             }
           },
           scales: {
