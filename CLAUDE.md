@@ -8,8 +8,8 @@ This is a Chart.js plugin that adds linear trendline support to charts. It fits 
 
 ## Development Commands
 
-- `npm run build` - Build the minified plugin using webpack
-- `npm test` - Run Jest tests for all components
+- `pnpm run build` - Build the minified plugin using webpack
+- `pnpm test` - Run Jest tests for all components
 
 ## Architecture
 
