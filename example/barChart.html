@@ -1,16 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>BarChart Example</title>
+    <title>Bar Chart - Chart.js Trendline Plugin</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+        .info-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .nav-links a:hover {
+            background: #2980b9;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bar Chart with Trendline</h1>
+        <p class="subtitle">Demonstrates linear trendline fitting on bar chart data</p>
+        
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="bar-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Configuration Used</h3>
+            <p>This example shows a bar chart with a <code>dotted</code> trendline in pink color. The trendline is configured with:</p>
+            <ul>
+                <li><strong>colorMin:</strong> <code>"rgba(255,105,180, .8)"</code> - Pink semi-transparent color</li>
+                <li><strong>lineStyle:</strong> <code>"dotted"</code> - Dotted line pattern</li>
+                <li><strong>width:</strong> <code>2</code> - Line width of 2 pixels</li>
+            </ul>
+        </div>
+
+        <div class="nav-links">
+            <a href="../index.html">← Back to Examples</a>
+            <a href="barChart_label.html">Bar Chart with Label →</a>
+        </div>
+    </div>
+
     <script>
-        document.addEventListener("DOMContentLoaded", function (event) {
-            // Bar chart
+        document.addEventListener("DOMContentLoaded", function () {
             new Chart(document.getElementById("bar-chart"), {
                 type: 'bar',
                 data: {
@@ -25,30 +125,42 @@
                                 lineStyle: "dotted",
                                 width: 2
                             }
-                        },
+                        }
                     ]
                 },
                 options: {
-                    legend: { display: false },
-                    title: {
-                        display: true,
-                        text: 'Predicted world population (millions) in 2050'
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            display: false 
+                        },
+                        title: {
+                            display: true,
+                            text: 'Predicted World Population (millions) in 2050',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Population (millions)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Regions'
+                            }
+                        }
                     }
                 }
             });
         });
     </script>
-</head>
-
-<body>
-    <h1>Bar Chart</h1>
-
-    <div style="width: 800px;">
-        <canvas id="bar-chart"></canvas>
-    </div>
-
-    <p>Using example code from <a href="http://tobiasahlin.com/blog/chartjs-charts-to-get-you-started/"
-            target="_blank">tobiasahlin.com.</a></p>
 </body>
-
 </html>

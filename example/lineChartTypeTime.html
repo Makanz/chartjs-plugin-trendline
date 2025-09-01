@@ -3,24 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chart.js Example</title>
+    <title>Time Scale Line Chart - Chart.js Trendline Plugin</title>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <!-- Include Chart.js and the Trendline plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+    </style>
 </head>
 <body>
-
-<!-- Canvas element for rendering the chart -->
-<canvas id="chartjs" width="400" height="200"></canvas>
+    <div class="container">
+        <h1>Chart.js Trendline Plugin</h1>
+        <p class="subtitle">Time Scale Line Chart with Trendline</p>
+        
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="chartjs"></canvas>
+            </div>
+        </div>
+    </div>
 
 <script type="text/javascript">
-    // Define colors
-    const barColor1 = '#258cda';  // Blue color for incidents
-    const borderColor1 = '#258cda';  // Same as backgroundColor for incidents
-    const barColor2 = '#cccccc';  // Gray color for outage
-    const borderColor2 = '#808080';  // Darker gray for borderColor of outage
-
     // Get the context of the canvas element we want to select
     const ctx = document.getElementById("chartjs").getContext('2d');
 
@@ -74,29 +113,79 @@
             labels: chartDynamics.map((o) => o.datepost),
             datasets: [
             {
-                label: "total",
+                label: "Daily Quantity",
                 data: chartDynamics.map((o) => o.quantity),
-                borderWidth: 1,
-                pointStyle: false,
-                trendlineLinear: { lineStyle: "dotted", width: 2 },
+                borderColor: '#3e95cd',
+                backgroundColor: 'rgba(62,149,205,0.1)',
+                borderWidth: 2,
+                pointStyle: 'circle',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: false,
+                trendlineLinear: { 
+                    colorMin: '#e74c3c',
+                    lineStyle: "dotted", 
+                    width: 2,
+                    label: {
+                        display: true,
+                        text: "Trend",
+                        displayValue: true
+                    }
+                },
             },
             ],
         },
         options: {
             maintainAspectRatio: false,
-            scales: {
-            x: { type: "time", time: { tooltipFormat: "d", minUnit: "day" } },
-            },
-            interaction: { mode: "nearest", intersect: false },
+            responsive: true,
             plugins: {
-            legend: { display: false },
-            autocolors: { enabled: false },
-            datalabels: { display: false },
+                title: {
+                    display: true,
+                    text: 'Time Series Data with Linear Trendline',
+                    font: { size: 16 }
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
             },
+            scales: {
+                x: { 
+                    type: "time", 
+                    time: { 
+                        tooltipFormat: "MMM d, yyyy", 
+                        displayFormats: {
+                            day: 'MMM d'
+                        },
+                        minUnit: "day" 
+                    },
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Quantity'
+                    }
+                }
+            },
+            interaction: { mode: "nearest", intersect: false }
         },
     });
 
 </script>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="../index.html" style="display: inline-block; margin: 0 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">← Back to Examples</a>
+        <a href="lineChartProjection.html" style="display: inline-block; margin: 0 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">← Line Chart Projection</a>
+        <a href="scatterChart.html" style="display: inline-block; margin: 0 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">Scatter Chart →</a>
+    </div>
 
 </body>
 </html>

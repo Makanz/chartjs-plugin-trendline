@@ -4,9 +4,46 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Scatter Chart Trendline Example</title>
+  <title>Scatter Chart - Chart.js Trendline Plugin</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      background-color: #f8f9fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: #7f8c8d;
+      margin-bottom: 40px;
+      font-size: 1.1rem;
+    }
+    .chart-container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .chart-wrapper {
+      position: relative;
+      height: 400px;
+    }
+  </style>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       new Chart(document.getElementById("scatter-chart"), {
@@ -14,7 +51,7 @@
         data: {
           datasets: [
             {
-              label: "Sample Data",
+              label: "Sample Data Points",
               data: [
                 {x: 12.39, y: 130},
                 {x: 12.39, y: 142},
@@ -23,20 +60,38 @@
                 {x: 13.14, y: 9947}
               ],
               backgroundColor: "#3e95cd",
+              borderColor: "#2980b9",
+              pointRadius: 6,
+              pointHoverRadius: 8,
               trendlineLinear: {
-                colorMin: "rgba(255,105,180, .8)",
+                colorMin: "#e74c3c",
                 lineStyle: "dotted",
-                width: 2
+                width: 2,
+                label: {
+                  display: true,
+                  text: "Linear Trend",
+                  displayValue: true
+                }
               }
             }
           ]
         },
         options: {
+          maintainAspectRatio: false,
+          responsive: true,
           plugins: {
-            legend: { display: true },
             title: {
               display: true,
-              text: 'Scatter Chart with Trendline'
+              text: 'Scatter Plot with Linear Trendline',
+              font: { size: 16 }
+            },
+            legend: {
+              display: true,
+              position: 'top'
+            },
+            tooltip: {
+              mode: 'point',
+              intersect: true
             }
           },
           scales: {
@@ -61,9 +116,21 @@
   </script>
 </head>
 <body>
-  <h1>Scatter Chart Example</h1>
-  <div style="width: 800px;">
-    <canvas id="scatter-chart"></canvas>
+  <div class="container">
+    <h1>Chart.js Trendline Plugin</h1>
+    <p class="subtitle">Scatter Chart with Linear Trendline</p>
+    
+    <div class="chart-container">
+      <div class="chart-wrapper">
+        <canvas id="scatter-chart"></canvas>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="../index.html" style="display: inline-block; margin: 0 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">← Back to Examples</a>
+      <a href="lineChartTypeTime.html" style="display: inline-block; margin: 0 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">← Time Series Line Chart</a>
+      <a href="scatterProjection.html" style="display: inline-block; margin: 0 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">Scatter Projection →</a>
+    </div>
   </div>
 </body>
 </html>
