@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Null Handling</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
+</head>
+<body>
+    <canvas id="test-chart" width="400" height="200"></canvas>
+    <script>
+        // Test with the exact data structure from lineChartProjection.html Dataset 3
+        const testData = [
+            { x: 50, y: 10 }, 
+            { x: 55, y: 12 }, 
+            { x: 60, y: 15 }, 
+            null, 
+            { x: 70, y: 18 }, 
+            { x: 75, y: 22 }, 
+            {x: 65, y: null}
+        ];
+        
+        console.log('Test data:', testData);
+        
+        try {
+            const chart = new Chart(document.getElementById('test-chart'), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        data: testData,
+                        label: "Test Dataset",
+                        borderColor: "#4BC0C0",
+                        trendlineLinear: {
+                            colorMin: "#4BC0C0",
+                            lineStyle: "solid",
+                            width: 2,
+                            projection: true
+                        }
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom'
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left'
+                        }
+                    }
+                }
+            });
+            console.log('Chart created successfully');
+        } catch (error) {
+            console.error('Error creating chart:', error);
+        }
+    </script>
+</body>
+</html>

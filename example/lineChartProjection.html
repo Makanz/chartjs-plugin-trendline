@@ -133,7 +133,7 @@
                         // Dataset 3: Projected, with positive trendoffset and null data points.
                         // Observe: Trendline calculation starts after skipping the first 2 data points (due to trendoffset: 2).
                         // Null values (e.g., at x=65) are correctly ignored by the fitter. The line projects to chart edges.
-                        data: [{ x: 50, y: 10 }, { x: 55, y: 12 }, { x: 60, y: 15 }, null, { x: 70, y: 18 }, { x: 75, y: 22 }, {x: 65, y: null}],
+                        data: [{ x: 50, y: 10 }, { x: 55, y: 12 }, { x: 60, y: 15 }, { x: 70, y: 18 }, { x: 75, y: 22 }, {x: 65, y: null}],
                         label: "Dataset 3 (Projected, Offset+, Nulls)",
                         borderColor: "#4BC0C0",
                         backgroundColor: "rgba(75,192,192,0.1)",
