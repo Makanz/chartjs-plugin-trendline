@@ -3,6 +3,10 @@
 This plugin draws an linear trendline in your Chart.
 It has been tested with Chart.js version 4.4.9.
 
+## 📊 [View Live Examples](https://makanz.github.io/chartjs-plugin-trendline/)
+
+See the plugin in action with interactive examples for different chart types.
+
 ## Installation
 
 #### Load directly in the browser

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart.js Plugin Trendline - Examples</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+        }
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .example-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .example-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .example-header {
+            padding: 20px;
+            background: #34495e;
+            color: white;
+        }
+        .example-title {
+            margin: 0;
+            font-size: 18px;
+        }
+        .example-description {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .example-preview {
+            padding: 20px;
+            text-align: center;
+        }
+        .example-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .example-link:hover {
+            background: #2980b9;
+        }
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid #ecf0f1;
+            margin-top: 40px;
+        }
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .install-section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .install-section h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        code {
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chart.js Plugin Trendline</h1>
+        <p class="subtitle">Interactive examples showcasing linear trendline functionality for Chart.js</p>
+        
+        <div class="install-section">
+            <h2>Quick Start</h2>
+            <p>Add the plugin to your HTML page:</p>
+            <pre><code>&lt;script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.min.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"&gt;&lt;/script&gt;</code></pre>
+        </div>
+
+        <div class="examples-grid">
+            <div class="example-card">
+                <div class="example-header">
+                    <h3 class="example-title">Bar Chart</h3>
+                    <p class="example-description">Basic bar chart with dotted trendline</p>
+                </div>
+                <div class="example-preview">
+                    <a href="example/barChart.html" class="example-link">View Example</a>
+                </div>
+            </div>
+
+            <div class="example-card">
+                <div class="example-header">
+                    <h3 class="example-title">Bar Chart with Label</h3>
+                    <p class="example-description">Bar chart displaying trendline with custom label</p>
+                </div>
+                <div class="example-preview">
+                    <a href="example/barChart_label.html" class="example-link">View Example</a>
+                </div>
+            </div>
+
+            <div class="example-card">
+                <div class="example-header">
+                    <h3 class="example-title">Bar Chart with Null Values</h3>
+                    <p class="example-description">Handling datasets with missing data points</p>
+                </div>
+                <div class="example-preview">
+                    <a href="example/barChartWithNullValues.html" class="example-link">View Example</a>
+                </div>
+            </div>
+
+            <div class="example-card">
+                <div class="example-header">
+                    <h3 class="example-title">Line Chart</h3>
+                    <p class="example-description">Standard line chart with linear trendline</p>
+                </div>
+                <div class="example-preview">
+                    <a href="example/lineChart.html" class="example-link">View Example</a>
+                </div>
+            </div>
+
+            <div class="example-card">
+                <div class="example-header">
+                    <h3 class="example-title">Line Chart Projection</h3>
+                    <p class="example-description">Line chart with trendline projection beyond data</p>
+                </div>
+                <div class="example-preview">
+                    <a href="example/lineChartProjection.html" class="example-link">View Example</a>
+                </div>
+            </div>
+
+            <div class="example-card">
+                <div class="example-header">
+                    <h3 class="example-title">Time Series Line Chart</h3>
+                    <p class="example-description">Line chart with time-based x-axis</p>
+                </div>
+                <div class="example-preview">
+                    <a href="example/lineChartTypeTime.html" class="example-link">View Example</a>
+                </div>
+            </div>
+
+            <div class="example-card">
+                <div class="example-header">
+                    <h3 class="example-title">Scatter Chart</h3>
+                    <p class="example-description">Scatter plot with fitted trendline</p>
+                </div>
+                <div class="example-preview">
+                    <a href="example/scatterChart.html" class="example-link">View Example</a>
+                </div>
+            </div>
+
+            <div class="example-card">
+                <div class="example-header">
+                    <h3 class="example-title">Scatter Projection</h3>
+                    <p class="example-description">Scatter chart with extended trendline projection</p>
+                </div>
+                <div class="example-preview">
+                    <a href="example/scatterProjection.html" class="example-link">View Example</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>
+                <a href="https://github.com/Makanz/chartjs-plugin-trendline">View on GitHub</a> |
+                <a href="https://www.npmjs.com/package/chartjs-plugin-trendline">NPM Package</a> |
+                <a href="https://github.com/Makanz/chartjs-plugin-trendline/issues">Report Issues</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
