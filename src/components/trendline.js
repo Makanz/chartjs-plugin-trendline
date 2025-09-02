@@ -1,4 +1,5 @@
 import { LineFitter } from '../utils/lineFitter';
+import { ExponentialFitter } from '../utils/exponentialFitter';
 import { drawTrendline, fillBelowTrendline, setLineStyle } from '../utils/drawing';
 import { addTrendlineLabel } from './label';
 
@@ -14,6 +15,10 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     const yAxisID = dataset.yAxisID || 'y'; // Default to 'y' if no yAxisID is specified
     const yScaleToUse = datasetMeta.controller.chart.scales[yAxisID] || yScale;
 
+    // Determine if we're using exponential or linear trendline
+    const isExponential = !!dataset.trendlineExponential;
+    const trendlineConfig = dataset.trendlineExponential || dataset.trendlineLinear || {};
+
     const defaultColor = dataset.borderColor || 'rgba(169,169,169, .6)';
     const {
         colorMin = defaultColor,
@@ -22,22 +27,22 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         lineStyle = 'solid',
         fillColor = false,
         // trendoffset is now handled separately
-    } = dataset.trendlineLinear || {};
-    let trendoffset = (dataset.trendlineLinear || {}).trendoffset || 0;
+    } = trendlineConfig;
+    let trendoffset = trendlineConfig.trendoffset || 0;
 
     const {
         color = defaultColor,
-        text = 'Trendline',
+        text = isExponential ? 'Exponential Trendline' : 'Trendline',
         display = true,
         displayValue = true,
         offset = 10,
         percentage = false,
-    } = (dataset.trendlineLinear && dataset.trendlineLinear.label) || {};
+    } = (trendlineConfig && trendlineConfig.label) || {};
 
     const {
         family = "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif",
         size = 12,
-    } = (dataset.trendlineLinear && dataset.trendlineLinear.label && dataset.trendlineLinear.label.font) || {};
+    } = (trendlineConfig && trendlineConfig.label && trendlineConfig.label.font) || {};
 
     const chartOptions = datasetMeta.controller.chart.options;
     const parsingOptions =
@@ -45,11 +50,11 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
             ? chartOptions.parsing
             : undefined;
     const xAxisKey =
-        dataset.trendlineLinear?.xAxisKey || parsingOptions?.xAxisKey || 'x';
+        trendlineConfig?.xAxisKey || parsingOptions?.xAxisKey || 'x';
     const yAxisKey =
-        dataset.trendlineLinear?.yAxisKey || parsingOptions?.yAxisKey || 'y';
+        trendlineConfig?.yAxisKey || parsingOptions?.yAxisKey || 'y';
 
-    let fitter = new LineFitter();
+    let fitter = isExponential ? new ExponentialFitter() : new LineFitter();
     
     // --- Data Point Collection and Validation for LineFitter ---
 
@@ -156,31 +161,44 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     const chartArea = datasetMeta.controller.chart.chartArea; // Defines the drawable area in pixels.
 
     // Determine trendline start/end points based on the 'projection' option.
-    if (dataset.trendlineLinear.projection) {
-        const slope = fitter.slope();
-        const intercept = fitter.intercept();
-        let points = []; 
+    if (trendlineConfig.projection) {
+        let points = [];
 
-        if (Math.abs(slope) > 1e-6) { 
-            const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
-            const x_at_top = (val_y_top - intercept) / slope; 
-            points.push({ x: x_at_top, y: val_y_top });
+        if (isExponential) {
+            // For exponential curves, we generate points across the x-axis range
+            const val_x_left = xScale.getValueForPixel(chartArea.left);
+            const y_at_left = fitter.f(val_x_left); 
+            points.push({ x: val_x_left, y: y_at_left });
 
-            const val_y_bottom = yScaleToUse.getValueForPixel(chartArea.bottom);
-            const x_at_bottom = (val_y_bottom - intercept) / slope; 
-            points.push({ x: x_at_bottom, y: val_y_bottom });
-        } else { 
-             points.push({ x: xScale.getValueForPixel(chartArea.left), y: intercept});
-             points.push({ x: xScale.getValueForPixel(chartArea.right), y: intercept});
+            const val_x_right = xScale.getValueForPixel(chartArea.right);
+            const y_at_right = fitter.f(val_x_right); 
+            points.push({ x: val_x_right, y: y_at_right });
+        } else {
+            // Linear projection logic (existing code)
+            const slope = fitter.slope();
+            const intercept = fitter.intercept();
+
+            if (Math.abs(slope) > 1e-6) { 
+                const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
+                const x_at_top = (val_y_top - intercept) / slope; 
+                points.push({ x: x_at_top, y: val_y_top });
+
+                const val_y_bottom = yScaleToUse.getValueForPixel(chartArea.bottom);
+                const x_at_bottom = (val_y_bottom - intercept) / slope; 
+                points.push({ x: x_at_bottom, y: val_y_bottom });
+            } else { 
+                 points.push({ x: xScale.getValueForPixel(chartArea.left), y: intercept});
+                 points.push({ x: xScale.getValueForPixel(chartArea.right), y: intercept});
+            }
+
+            const val_x_left = xScale.getValueForPixel(chartArea.left);
+            const y_at_left = fitter.f(val_x_left); 
+            points.push({ x: val_x_left, y: y_at_left });
+
+            const val_x_right = xScale.getValueForPixel(chartArea.right);
+            const y_at_right = fitter.f(val_x_right); 
+            points.push({ x: val_x_right, y: y_at_right });
         }
-
-        const val_x_left = xScale.getValueForPixel(chartArea.left);
-        const y_at_left = fitter.f(val_x_left); 
-        points.push({ x: val_x_left, y: y_at_left });
-
-        const val_x_right = xScale.getValueForPixel(chartArea.right);
-        const y_at_right = fitter.f(val_x_right); 
-        points.push({ x: val_x_right, y: y_at_right });
         
         const chartMinX = xScale.getValueForPixel(chartArea.left); 
         const chartMaxX = xScale.getValueForPixel(chartArea.right); 
@@ -247,16 +265,23 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
             }
 
             const angle = Math.atan2(y2_px - y1_px, x2_px - x1_px);
-            const displaySlope = fitter.slope();
-
-            if (dataset.trendlineLinear.label && display !== false) {
-                const trendText = displayValue
-                    ? `${text} (Slope: ${
-                          percentage
-                              ? (displaySlope * 100).toFixed(2) + '%' 
-                              : displaySlope.toFixed(2)
-                      })`
-                    : text;
+            
+            if (trendlineConfig.label && display !== false) {
+                let trendText = text;
+                if (displayValue) {
+                    if (isExponential) {
+                        const coefficient = fitter.coefficient();
+                        const growthRate = fitter.growthRate();
+                        trendText = `${text} (a=${coefficient.toFixed(2)}, b=${growthRate.toFixed(2)})`;
+                    } else {
+                        const displaySlope = fitter.slope();
+                        trendText = `${text} (Slope: ${
+                            percentage
+                                ? (displaySlope * 100).toFixed(2) + '%' 
+                                : displaySlope.toFixed(2)
+                        })`;
+                    }
+                }
                 addTrendlineLabel(
                     ctx,
                     trendText,

@@ -1,3 +1,16 @@
+# Changelog 3.1.0
+
+### New Features
+- Added exponential trendline support with `trendlineExponential` configuration
+- Exponential trendlines fit curves of the form y = a × e^(b×x)
+- All existing styling options (colors, width, lineStyle, projection, etc.) work with exponential trendlines
+- Added comprehensive test coverage for exponential functionality
+- Added exponential trendline example (exponentialChart.html)
+
+### Improvements
+- Updated README with exponential trendline documentation
+- Enhanced package description to mention exponential support
+
 # Changelog 3.0.0
 
 ### Breaking Changes
