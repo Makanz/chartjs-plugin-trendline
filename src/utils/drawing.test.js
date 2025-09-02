@@ -185,6 +185,57 @@ describe('drawTrendline', () => {
     expect(mockCtx.stroke).toHaveBeenCalledTimes(1);
     expect(mockCtx.closePath).toHaveBeenCalledTimes(1);
   });
+
+  it('should use solid color for degenerate gradient (identical coordinates)', () => {
+    const params = { ctx: mockCtx, x1: 50, y1: 50, x2: 50, y2: 50, colorMin: 'red', colorMax: 'blue' };
+    drawTrendline(params);
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'Gradient vector too small, using solid color:',
+      { x1: 50, y1: 50, x2: 50, y2: 50, length: 0 }
+    );
+    expect(mockCtx.strokeStyle).toBe(params.colorMin);
+    expect(mockCtx.createLinearGradient).not.toHaveBeenCalled();
+    expect(mockCtx.beginPath).toHaveBeenCalledTimes(1);
+    expect(mockCtx.moveTo).toHaveBeenCalledWith(params.x1, params.y1);
+    expect(mockCtx.lineTo).toHaveBeenCalledWith(params.x2, params.y2);
+    expect(mockCtx.stroke).toHaveBeenCalledTimes(1);
+    expect(mockCtx.closePath).toHaveBeenCalledTimes(1);
+  });
+
+  it('should use solid color for degenerate gradient (very close coordinates)', () => {
+    const params = { ctx: mockCtx, x1: 50, y1: 50, x2: 50.005, y2: 50.005, colorMin: 'red', colorMax: 'blue' };
+    drawTrendline(params);
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'Gradient vector too small, using solid color:',
+      expect.objectContaining({ x1: 50, y1: 50, x2: 50.005, y2: 50.005 })
+    );
+    expect(mockCtx.strokeStyle).toBe(params.colorMin);
+    expect(mockCtx.createLinearGradient).not.toHaveBeenCalled();
+    expect(mockCtx.beginPath).toHaveBeenCalledTimes(1);
+    expect(mockCtx.moveTo).toHaveBeenCalledWith(params.x1, params.y1);
+    expect(mockCtx.lineTo).toHaveBeenCalledWith(params.x2, params.y2);
+    expect(mockCtx.stroke).toHaveBeenCalledTimes(1);
+    expect(mockCtx.closePath).toHaveBeenCalledTimes(1);
+  });
+
+  it('should create gradient successfully for sufficiently separated coordinates', () => {
+    const params = { ctx: mockCtx, x1: 0, y1: 0, x2: 1, y2: 0, colorMin: 'red', colorMax: 'blue' };
+    drawTrendline(params);
+
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    expect(mockCtx.createLinearGradient).toHaveBeenCalledWith(params.x1, params.y1, params.x2, params.y2);
+    expect(mockGradient.addColorStop).toHaveBeenCalledTimes(2);
+    expect(mockGradient.addColorStop).toHaveBeenCalledWith(0, params.colorMin);
+    expect(mockGradient.addColorStop).toHaveBeenCalledWith(1, params.colorMax);
+    expect(mockCtx.strokeStyle).toBe(mockGradient);
+    expect(mockCtx.beginPath).toHaveBeenCalledTimes(1);
+    expect(mockCtx.moveTo).toHaveBeenCalledWith(params.x1, params.y1);
+    expect(mockCtx.lineTo).toHaveBeenCalledWith(params.x2, params.y2);
+    expect(mockCtx.stroke).toHaveBeenCalledTimes(1);
+    expect(mockCtx.closePath).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('fillBelowTrendline', () => {

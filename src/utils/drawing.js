@@ -62,10 +62,21 @@ export const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
     ctx.lineTo(x2, y2);
 
     try {
-        let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-        gradient.addColorStop(0, colorMin);
-        gradient.addColorStop(1, colorMax);
-        ctx.strokeStyle = gradient;
+        // Additional validation for degenerate gradients
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const gradientLength = Math.sqrt(dx * dx + dy * dy);
+        
+        // If the gradient vector is too small, createLinearGradient may fail
+        if (gradientLength < 0.01) {
+            console.warn('Gradient vector too small, using solid color:', { x1, y1, x2, y2, length: gradientLength });
+            ctx.strokeStyle = colorMin;
+        } else {
+            let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+            gradient.addColorStop(0, colorMin);
+            gradient.addColorStop(1, colorMax);
+            ctx.strokeStyle = gradient;
+        }
     } catch (e) {
         // Fallback to solid color if gradient creation fails
         console.warn('Gradient creation failed, using solid color:', e);
