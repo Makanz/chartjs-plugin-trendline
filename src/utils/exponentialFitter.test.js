@@ -184,6 +184,29 @@ describe('ExponentialFitter', () => {
       expect(correlation).toBeGreaterThanOrEqual(0);
       expect(correlation).toBeLessThanOrEqual(1);
     });
+
+    test('should return high correlation for perfect exponential data', () => {
+      const fitter = new ExponentialFitter();
+      fitter.add(0, 1);   // 2^0 = 1
+      fitter.add(1, 2);   // 2^1 = 2
+      fitter.add(2, 4);   // 2^2 = 4
+      fitter.add(3, 8);   // 2^3 = 8
+      
+      const correlation = fitter.correlation();
+      expect(correlation).toBeGreaterThan(0.99); // Perfect exponential should have very high R²
+    });
+
+    test('should return lower correlation for noisy exponential data', () => {
+      const fitter = new ExponentialFitter();
+      fitter.add(0, 1.5);   // More noisy data to ensure lower correlation
+      fitter.add(1, 1.8);
+      fitter.add(2, 5.2);
+      fitter.add(3, 6.1);
+      
+      const correlation = fitter.correlation();
+      expect(correlation).toBeGreaterThan(0.5);  // Still reasonable correlation
+      expect(correlation).toBeLessThan(0.95);    // But not perfect
+    });
   });
 
   describe('edge cases', () => {

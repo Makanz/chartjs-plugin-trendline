@@ -12,6 +12,7 @@ export class ExponentialFitter {
         this.minx = Number.MAX_VALUE;
         this.maxx = Number.MIN_VALUE;
         this.hasValidData = true;
+        this.dataPoints = []; // Store data points for correlation calculation
     }
 
     /**
@@ -37,6 +38,7 @@ export class ExponentialFitter {
         this.sumxlny += x * lny;
         if (x < this.minx) this.minx = x;
         if (x > this.maxx) this.maxx = x;
+        this.dataPoints.push({x, y, lny}); // Store actual data points
         this.count++;
     }
 
@@ -86,15 +88,16 @@ export class ExponentialFitter {
         if (!this.hasValidData || this.count < 2) return 0;
         
         const meanLnY = this.sumlny / this.count;
-        const meanX = this.sumx / this.count;
+        const lnA = Math.log(this.coefficient());
+        const b = this.growthRate();
         
         let ssTotal = 0;
         let ssRes = 0;
         
-        for (let i = 0; i < this.count; i++) {
-            const predictedLnY = Math.log(this.coefficient()) + this.growthRate() * meanX;
-            ssTotal += Math.pow(meanLnY - meanLnY, 2);
-            ssRes += Math.pow(meanLnY - predictedLnY, 2);
+        for (const point of this.dataPoints) {
+            const predictedLnY = lnA + b * point.x;
+            ssTotal += Math.pow(point.lny - meanLnY, 2);
+            ssRes += Math.pow(point.lny - predictedLnY, 2);
         }
         
         if (ssTotal === 0) return 1;
