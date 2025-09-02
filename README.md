@@ -1,6 +1,6 @@
 # chartjs-plugin-trendline
 
-This plugin draws an linear trendline in your Chart.
+This plugin draws linear and exponential trendlines in your Chart.
 It has been tested with Chart.js version 4.4.9.
 
 ## 📊 [View Live Examples](https://makanz.github.io/chartjs-plugin-trendline/)
@@ -35,6 +35,10 @@ ChartJS.plugins.register(chartTrendline);
 
 To configure the trendline plugin you simply add a new config options to your dataset in your chart config.
 
+### Linear Trendlines
+
+For linear trendlines (straight lines), use the `trendlineLinear` configuration:
+
 ```javascript
 {
 	trendlineLinear: {
@@ -51,7 +55,7 @@ To configure the trendline plugin you simply add a new config options to your da
 			color: Color,
 			text: string,
 			display: boolean,
-			displayValue: boolean,
+			displayValue: boolean, // shows slope value
 			offset: number,
 			percentage: boolean,
 			font: {
@@ -72,11 +76,64 @@ To configure the trendline plugin you simply add a new config options to your da
 }
 ```
 
+### Exponential Trendlines
+
+For exponential trendlines (curves of the form y = a × e^(b×x)), use the `trendlineExponential` configuration:
+
+```javascript
+{
+	trendlineExponential: {
+		colorMin: Color,
+		colorMax: Color,
+		lineStyle: string, // "dotted" | "solid" | "dashed" | "dashdot"
+		width: number,
+		xAxisKey: string, // optional
+		yAxisKey: string, // optional
+		projection: boolean, // optional
+		trendoffset: number, // optional, if > 0 skips first n elements, if < 0 uses last n elements
+		// optional
+		label: {
+			color: Color,
+			text: string,
+			display: boolean,
+			displayValue: boolean, // shows exponential parameters (a, b)
+			offset: number,
+			font: {
+				family: string,
+				size: number,
+			}
+		},
+		// optional
+		legend: {
+			text: string,
+			strokeStyle: Color,
+			fillStyle: Color,
+			lineCap: string,
+			lineDash: number[],
+			lineWidth: number,
+		}
+	}
+}
+```
+
+**Note:** Exponential trendlines work best with positive y-values. The equation fitted is y = a × e^(b×x), where:
+- `a` is the coefficient (scaling factor)
+- `b` is the growth rate (positive for growth, negative for decay)
+
+## Examples
+
+- [Linear Trendline Example](./example/lineChart.html)
+- [Exponential Trendline Example](./example/exponentialChart.html)
+- [Bar Chart with Trendline](./example/barChart.html)
+- [Scatter Chart with Trendline](./example/scatterChart.html)
+
 ## Supported chart types
 
 -   bar
 -   line
 -   scatter
+
+Both linear and exponential trendlines are supported for all chart types.
 
 ## Contributing
 

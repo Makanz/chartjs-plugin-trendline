@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Exponential Trendline - Chart.js Trendline Plugin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+        .info-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .nav-links a:hover {
+            background: #2980b9;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function (event) {
+            new Chart(document.getElementById('exponential-chart'), {
+                type: 'line',
+                data: {
+                    labels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                    datasets: [
+                        {
+                            data: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+                            label: 'Exponential Growth (2^x)',
+                            borderColor: '#3e95cd',
+                            backgroundColor: 'rgba(62, 149, 205, 0.1)',
+                            fill: false,
+                            trendlineExponential: {
+                                colorMin: '#ff6b6b',
+                                colorMax: '#ff6b6b',
+                                width: 2,
+                                lineStyle: 'solid',
+                                label: {
+                                    text: 'Exponential Trend',
+                                    display: true,
+                                    displayValue: true,
+                                    color: '#ff6b6b',
+                                    font: {
+                                        size: 12,
+                                        family: 'Arial',
+                                    },
+                                    offset: 10,
+                                },
+                            },
+                        },
+                        {
+                            data: [100, 50, 25, 12.5, 6.25, 3.125, 1.5625, 0.78125, 0.390625, 0.1953125, 0.09765625],
+                            label: 'Exponential Decay (100 * 0.5^x)',
+                            borderColor: '#8e5ea2',
+                            backgroundColor: 'rgba(142, 94, 162, 0.1)',
+                            fill: false,
+                            trendlineExponential: {
+                                colorMin: '#4ecdc4',
+                                colorMax: '#4ecdc4',
+                                width: 2,
+                                lineStyle: 'dashed',
+                                label: {
+                                    text: 'Exponential Decay',
+                                    display: true,
+                                    displayValue: true,
+                                    color: '#4ecdc4',
+                                    font: {
+                                        size: 12,
+                                        family: 'Arial',
+                                    },
+                                    offset: 10,
+                                },
+                            },
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Exponential Trendline Examples',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            display: true,
+                        },
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'X Values',
+                            },
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Y Values',
+                            },
+                            type: 'logarithmic',
+                        },
+                    },
+                },
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Exponential Trendlines</h1>
+        <p class="subtitle">Demonstrates exponential curve fitting with growth and decay examples</p>
+        
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="exponential-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Configuration Features</h3>
+            <p>This example demonstrates exponential trendline fitting using <code>trendlineExponential</code>:</p>
+            <ul>
+                <li><strong>Exponential Growth:</strong> Shows data following 2^x pattern with solid red trendline</li>
+                <li><strong>Exponential Decay:</strong> Shows data following 100 * 0.5^x pattern with dashed teal trendline</li>
+                <li><strong>Logarithmic Scale:</strong> Y-axis uses logarithmic scaling for better visualization</li>
+                <li><strong>Custom Labels:</strong> Both trendlines include custom labels with equation parameters</li>
+            </ul>
+        </div>
+
+        <div class="info-section">
+            <h3>Configuration Example</h3>
+            <p>To use exponential trendlines, configure your dataset with <code>trendlineExponential</code> instead of <code>trendlineLinear</code>:</p>
+            <pre><code>trendlineExponential: {
+    colorMin: '#ff6b6b',
+    colorMax: '#ff6b6b',
+    width: 2,
+    lineStyle: 'solid',
+    label: {
+        text: 'Exponential Trend',
+        display: true,
+        displayValue: true,
+        color: '#ff6b6b',
+        font: {
+            size: 12,
+            family: 'Arial',
+        },
+        offset: 10,
+    },
+}</code></pre>
+        </div>
+
+        <div class="info-section">
+            <h3>Important Notes</h3>
+            <ul>
+                <li>Exponential fitting works best with positive y-values</li>
+                <li>The label shows the exponential parameters: a (coefficient) and b (growth rate)</li>
+                <li>The equation is: y = a * e^(b*x)</li>
+                <li>All styling options that work for linear trendlines also work for exponential</li>
+            </ul>
+        </div>
+
+        <div class="nav-links">
+            <a href="../index.html">← Back to Examples</a>
+        </div>
+    </div>
+</body>
+
+</html>
