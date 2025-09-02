@@ -10,7 +10,7 @@ export const pluginTrendlineLinear = {
 
         const sortedDatasets = chartInstance.data.datasets
             .map((dataset, index) => ({ dataset, index }))
-            .filter((entry) => entry.dataset.trendlineLinear)
+            .filter((entry) => entry.dataset.trendlineLinear || entry.dataset.trendlineExponential)
             .sort((a, b) => {
                 const orderA = a.dataset.order ?? 0;
                 const orderB = b.dataset.order ?? 0;
@@ -42,8 +42,9 @@ export const pluginTrendlineLinear = {
         const datasets = chartInstance.data.datasets;
 
         datasets.forEach((dataset) => {
-            if (dataset.trendlineLinear && dataset.trendlineLinear.label) {
-                const label = dataset.trendlineLinear.label;
+            const trendlineConfig = dataset.trendlineLinear || dataset.trendlineExponential;
+            if (trendlineConfig && trendlineConfig.label) {
+                const label = trendlineConfig.label;
 
                 // Access chartInstance to update legend labels
                 const originalGenerateLabels =
@@ -54,7 +55,7 @@ export const pluginTrendlineLinear = {
                 ) {
                     const defaultLabels = originalGenerateLabels(chart);
 
-                    const legendConfig = dataset.trendlineLinear.legend;
+                    const legendConfig = trendlineConfig.legend;
 
                     // Display the legend is it's populated and not set to hidden
                     if (legendConfig && legendConfig.display !== false) {
