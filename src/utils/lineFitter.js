@@ -10,6 +10,9 @@ export class LineFitter {
         this.sumxy = 0;
         this.minx = Number.MAX_VALUE;
         this.maxx = Number.MIN_VALUE;
+        this._cachedSlope = null;
+        this._cachedIntercept = null;
+        this._cacheValid = false;
     }
 
     /**
@@ -25,6 +28,7 @@ export class LineFitter {
         if (x < this.minx) this.minx = x;
         if (x > this.maxx) this.maxx = x;
         this.count++;
+        this._cacheValid = false;
     }
 
     /**
@@ -32,8 +36,10 @@ export class LineFitter {
      * @returns {number} - The slope of the line.
      */
     slope() {
-        const denominator = this.count * this.sumx2 - this.sumx * this.sumx;
-        return (this.count * this.sumxy - this.sumx * this.sumy) / denominator;
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        return this._cachedSlope;
     }
 
     /**
@@ -41,7 +47,10 @@ export class LineFitter {
      * @returns {number} - The y-intercept of the line.
      */
     intercept() {
-        return (this.sumy - this.slope() * this.sumx) / this.count;
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        return this._cachedIntercept;
     }
 
     /**
@@ -67,5 +76,12 @@ export class LineFitter {
      */
     scale() {
         return this.slope();
+    }
+
+    _computeCoefficients() {
+        const denominator = this.count * this.sumx2 - this.sumx * this.sumx;
+        this._cachedSlope = (this.count * this.sumxy - this.sumx * this.sumy) / denominator;
+        this._cachedIntercept = (this.sumy - this._cachedSlope * this.sumx) / this.count;
+        this._cacheValid = true;
     }
 } 

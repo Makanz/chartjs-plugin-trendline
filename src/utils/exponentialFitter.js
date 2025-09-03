@@ -13,6 +13,10 @@ export class ExponentialFitter {
         this.maxx = Number.MIN_VALUE;
         this.hasValidData = true;
         this.dataPoints = []; // Store data points for correlation calculation
+        this._cachedGrowthRate = null;
+        this._cachedCoefficient = null;
+        this._cachedCorrelation = null;
+        this._cacheValid = false;
     }
 
     /**
@@ -40,6 +44,7 @@ export class ExponentialFitter {
         if (x > this.maxx) this.maxx = x;
         this.dataPoints.push({x, y, lny}); // Store actual data points
         this.count++;
+        this._cacheValid = false;
     }
 
     /**
@@ -48,9 +53,10 @@ export class ExponentialFitter {
      */
     growthRate() {
         if (!this.hasValidData || this.count < 2) return 0;
-        const denominator = this.count * this.sumx2 - this.sumx * this.sumx;
-        if (Math.abs(denominator) < 1e-10) return 0;
-        return (this.count * this.sumxlny - this.sumx * this.sumlny) / denominator;
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        return this._cachedGrowthRate;
     }
 
     /**
@@ -59,8 +65,10 @@ export class ExponentialFitter {
      */
     coefficient() {
         if (!this.hasValidData || this.count < 2) return 1;
-        const lnA = (this.sumlny - this.growthRate() * this.sumx) / this.count;
-        return Math.exp(lnA);
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        return this._cachedCoefficient;
     }
 
     /**
@@ -70,13 +78,14 @@ export class ExponentialFitter {
      */
     f(x) {
         if (!this.hasValidData || this.count < 2) return 0;
-        const a = this.coefficient();
-        const b = this.growthRate();
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
         
         // Check for potential overflow before calculation
-        if (Math.abs(b * x) > 500) return 0; // Safer limit to prevent overflow
+        if (Math.abs(this._cachedGrowthRate * x) > 500) return 0; // Safer limit to prevent overflow
         
-        const result = a * Math.exp(b * x);
+        const result = this._cachedCoefficient * Math.exp(this._cachedGrowthRate * x);
         return isFinite(result) ? result : 0;
     }
 
@@ -86,22 +95,10 @@ export class ExponentialFitter {
      */
     correlation() {
         if (!this.hasValidData || this.count < 2) return 0;
-        
-        const meanLnY = this.sumlny / this.count;
-        const lnA = Math.log(this.coefficient());
-        const b = this.growthRate();
-        
-        let ssTotal = 0;
-        let ssRes = 0;
-        
-        for (const point of this.dataPoints) {
-            const predictedLnY = lnA + b * point.x;
-            ssTotal += Math.pow(point.lny - meanLnY, 2);
-            ssRes += Math.pow(point.lny - predictedLnY, 2);
+        if (!this._cacheValid) {
+            this._computeCoefficients();
         }
-        
-        if (ssTotal === 0) return 1;
-        return Math.max(0, 1 - (ssRes / ssTotal));
+        return this._cachedCorrelation;
     }
 
     /**
@@ -110,5 +107,41 @@ export class ExponentialFitter {
      */
     scale() {
         return this.growthRate();
+    }
+
+    _computeCoefficients() {
+        if (!this.hasValidData || this.count < 2) {
+            this._cachedGrowthRate = 0;
+            this._cachedCoefficient = 1;
+            this._cachedCorrelation = 0;
+            this._cacheValid = true;
+            return;
+        }
+
+        const denominator = this.count * this.sumx2 - this.sumx * this.sumx;
+        if (Math.abs(denominator) < 1e-10) {
+            this._cachedGrowthRate = 0;
+            this._cachedCoefficient = 1;
+            this._cachedCorrelation = 0;
+            this._cacheValid = true;
+            return;
+        }
+
+        this._cachedGrowthRate = (this.count * this.sumxlny - this.sumx * this.sumlny) / denominator;
+        const lnA = (this.sumlny - this._cachedGrowthRate * this.sumx) / this.count;
+        this._cachedCoefficient = Math.exp(lnA);
+
+        const meanLnY = this.sumlny / this.count;
+        let ssTotal = 0;
+        let ssRes = 0;
+        
+        for (const point of this.dataPoints) {
+            const predictedLnY = lnA + this._cachedGrowthRate * point.x;
+            ssTotal += Math.pow(point.lny - meanLnY, 2);
+            ssRes += Math.pow(point.lny - predictedLnY, 2);
+        }
+        
+        this._cachedCorrelation = ssTotal === 0 ? 1 : Math.max(0, 1 - (ssRes / ssTotal));
+        this._cacheValid = true;
     }
 }
