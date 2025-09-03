@@ -262,4 +262,79 @@ describe('LineFitter', () => {
       expect(fitter3.scale()).toBeNaN();
     });
   });
+
+  describe('caching behavior', () => {
+    test('should cache slope and intercept calculations', () => {
+      const fitter = new LineFitter();
+      fitter.add(1, 1);
+      fitter.add(2, 2);
+      
+      // First call should compute and cache
+      const slope1 = fitter.slope();
+      const intercept1 = fitter.intercept();
+      
+      // Subsequent calls should return cached values
+      const slope2 = fitter.slope();
+      const intercept2 = fitter.intercept();
+      
+      expect(slope1).toBe(slope2);
+      expect(intercept1).toBe(intercept2);
+      expect(slope1).toBe(1);
+      expect(intercept1).toBe(0);
+      
+      // Check that cache is populated
+      expect(fitter._cachedSlope).toBe(1);
+      expect(fitter._cachedIntercept).toBe(0);
+      expect(fitter._cacheValid).toBe(true);
+    });
+
+    test('should invalidate cache when new data is added', () => {
+      const fitter = new LineFitter();
+      fitter.add(1, 1);
+      fitter.add(2, 2);
+      
+      // Cache should be valid after first calculation
+      fitter.slope();
+      expect(fitter._cacheValid).toBe(true);
+      
+      // Adding new data should invalidate cache
+      fitter.add(3, 4);
+      expect(fitter._cacheValid).toBe(false);
+      
+      // New calculation should work with updated data
+      const newSlope = fitter.slope();
+      expect(newSlope).toBeCloseTo(1.5, 5); // New slope with data [1,1], [2,2], [3,4]
+      expect(fitter._cacheValid).toBe(true);
+    });
+
+    test('should handle multiple method calls efficiently with caching', () => {
+      const fitter = new LineFitter();
+      fitter.add(0, 1);
+      fitter.add(1, 3);
+      fitter.add(2, 5); // y = 2x + 1
+      
+      // Simulate multiple calls like in trendline.js
+      const slope1 = fitter.slope();
+      const intercept1 = fitter.intercept(); // This used to call slope() again
+      const f1 = fitter.f(3); // This calls both slope() and intercept()
+      const slope2 = fitter.slope(); // Another direct call
+      
+      expect(slope1).toBe(2);
+      expect(slope2).toBe(2);
+      expect(intercept1).toBe(1);
+      expect(f1).toBe(7); // 2*3 + 1 = 7
+      
+      // All should use cached values
+      expect(fitter._cachedSlope).toBe(2);
+      expect(fitter._cachedIntercept).toBe(1);
+      expect(fitter._cacheValid).toBe(true);
+    });
+
+    test('should initialize cache properties correctly', () => {
+      const fitter = new LineFitter();
+      expect(fitter._cachedSlope).toBe(null);
+      expect(fitter._cachedIntercept).toBe(null);
+      expect(fitter._cacheValid).toBe(false);
+    });
+  });
 });
