@@ -1,4 +1,4 @@
-import { ExponentialFitter } from './exponentialFitter';
+import { ExponentialFitter } from './exponentialFitter.js';
 
 describe('ExponentialFitter', () => {
   describe('constructor', () => {

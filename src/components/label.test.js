@@ -1,4 +1,4 @@
-import { addTrendlineLabel } from './label';
+import { addTrendlineLabel } from './label.js';
 import 'jest-canvas-mock'; // Ensures canvas context is mocked
 
 describe('addTrendlineLabel', () => {

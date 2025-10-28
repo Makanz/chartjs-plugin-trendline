@@ -1,7 +1,7 @@
-import { LineFitter } from '../utils/lineFitter';
-import { ExponentialFitter } from '../utils/exponentialFitter';
-import { drawTrendline, fillBelowTrendline, setLineStyle } from '../utils/drawing';
-import { addTrendlineLabel } from './label';
+import { LineFitter } from '../utils/lineFitter.js';
+import { ExponentialFitter } from '../utils/exponentialFitter.js';
+import { drawTrendline, fillBelowTrendline, setLineStyle } from '../utils/drawing.js';
+import { addTrendlineLabel } from './label.js';
 
 /**
  * Adds a trendline (fitter) to the dataset on the chart and optionally labels it with trend value.

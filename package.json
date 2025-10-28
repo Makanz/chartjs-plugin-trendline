@@ -2,7 +2,15 @@
   "name": "chartjs-plugin-trendline",
   "version": "3.1.1",
   "description": "Trendline for Chart.js",
+  "type": "module",
   "main": "src/index.js",
+  "module": "src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "require": "./dist/chartjs-plugin-trendline.min.js"
+    }
+  },
   "scripts": {
     "build": "webpack --mode=production",
     "test": "jest"
