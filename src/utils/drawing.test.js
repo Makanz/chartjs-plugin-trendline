@@ -1,4 +1,4 @@
-import { getScales, setLineStyle, drawTrendline, fillBelowTrendline } from './drawing';
+import { getScales, setLineStyle, drawTrendline, fillBelowTrendline } from './drawing.js';
 
 describe('getScales', () => {
   it('should correctly identify x and y scales', () => {

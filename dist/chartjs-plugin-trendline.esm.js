@@ -1,7 +1,429 @@
-import { LineFitter } from '../utils/lineFitter.js';
-import { ExponentialFitter } from '../utils/exponentialFitter.js';
-import { drawTrendline, fillBelowTrendline, setLineStyle } from '../utils/drawing.js';
-import { addTrendlineLabel } from './label.js';
+/*!
+ * chartjs-plugin-trendline v3.2.0
+ * https://github.com/Makanz/chartjs-plugin-trendline
+ * (c) 2025 Marcus Alsterfjord
+ * Released under the MIT license
+ */
+/**
+ * A class that fits a line to a series of points using least squares.
+ */
+class LineFitter {
+    constructor() {
+        this.count = 0;
+        this.sumx = 0;
+        this.sumy = 0;
+        this.sumx2 = 0;
+        this.sumxy = 0;
+        this.minx = Number.MAX_VALUE;
+        this.maxx = Number.MIN_VALUE;
+        this._cachedSlope = null;
+        this._cachedIntercept = null;
+        this._cacheValid = false;
+    }
+
+    /**
+     * Adds a point to the line fitter.
+     * @param {number} x - The x-coordinate of the point.
+     * @param {number} y - The y-coordinate of the point.
+     */
+    add(x, y) {
+        this.sumx += x;
+        this.sumy += y;
+        this.sumx2 += x * x;
+        this.sumxy += x * y;
+        if (x < this.minx) this.minx = x;
+        if (x > this.maxx) this.maxx = x;
+        this.count++;
+        this._cacheValid = false;
+    }
+
+    /**
+     * Calculates the slope of the fitted line.
+     * @returns {number} - The slope of the line.
+     */
+    slope() {
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        return this._cachedSlope;
+    }
+
+    /**
+     * Calculates the y-intercept of the fitted line.
+     * @returns {number} - The y-intercept of the line.
+     */
+    intercept() {
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        return this._cachedIntercept;
+    }
+
+    /**
+     * Returns the fitted value (y) for a given x.
+     * @param {number} x - The x-coordinate.
+     * @returns {number} - The corresponding y-coordinate on the fitted line.
+     */
+    f(x) {
+        return this.slope() * x + this.intercept();
+    }
+
+    /**
+     * Calculates the projection of the line for the future value.
+     * @returns {number} - The future value based on the fitted line.
+     */
+    fo() {
+        return -this.intercept() / this.slope();
+    }
+
+    /**
+     * Returns the scale (variance) of the fitted line.
+     * @returns {number} - The scale of the fitted line.
+     */
+    scale() {
+        return this.slope();
+    }
+
+    _computeCoefficients() {
+        const denominator = this.count * this.sumx2 - this.sumx * this.sumx;
+        this._cachedSlope = (this.count * this.sumxy - this.sumx * this.sumy) / denominator;
+        this._cachedIntercept = (this.sumy - this._cachedSlope * this.sumx) / this.count;
+        this._cacheValid = true;
+    }
+}
+
+/**
+ * A class that fits an exponential curve to a series of points using least squares.
+ * Fits y = a * e^(b*x) by transforming to ln(y) = ln(a) + b*x
+ */
+class ExponentialFitter {
+    constructor() {
+        this.count = 0;
+        this.sumx = 0;
+        this.sumlny = 0;
+        this.sumx2 = 0;
+        this.sumxlny = 0;
+        this.minx = Number.MAX_VALUE;
+        this.maxx = Number.MIN_VALUE;
+        this.hasValidData = true;
+        this.dataPoints = []; // Store data points for correlation calculation
+        this._cachedGrowthRate = null;
+        this._cachedCoefficient = null;
+        this._cachedCorrelation = null;
+        this._cacheValid = false;
+    }
+
+    /**
+     * Adds a point to the exponential fitter.
+     * @param {number} x - The x-coordinate of the point.
+     * @param {number} y - The y-coordinate of the point.
+     */
+    add(x, y) {
+        if (y <= 0) {
+            this.hasValidData = false;
+            return;
+        }
+
+        const lny = Math.log(y);
+        if (!isFinite(lny)) {
+            this.hasValidData = false;
+            return;
+        }
+
+        this.sumx += x;
+        this.sumlny += lny;
+        this.sumx2 += x * x;
+        this.sumxlny += x * lny;
+        if (x < this.minx) this.minx = x;
+        if (x > this.maxx) this.maxx = x;
+        this.dataPoints.push({x, y, lny}); // Store actual data points
+        this.count++;
+        this._cacheValid = false;
+    }
+
+    /**
+     * Calculates the exponential growth rate (b in y = a * e^(b*x)).
+     * @returns {number} - The exponential growth rate.
+     */
+    growthRate() {
+        if (!this.hasValidData || this.count < 2) return 0;
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        return this._cachedGrowthRate;
+    }
+
+    /**
+     * Calculates the exponential coefficient (a in y = a * e^(b*x)).
+     * @returns {number} - The exponential coefficient.
+     */
+    coefficient() {
+        if (!this.hasValidData || this.count < 2) return 1;
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        return this._cachedCoefficient;
+    }
+
+    /**
+     * Returns the fitted exponential value (y) for a given x.
+     * @param {number} x - The x-coordinate.
+     * @returns {number} - The corresponding y-coordinate on the fitted exponential curve.
+     */
+    f(x) {
+        if (!this.hasValidData || this.count < 2) return 0;
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        
+        // Check for potential overflow before calculation
+        if (Math.abs(this._cachedGrowthRate * x) > 500) return 0; // Safer limit to prevent overflow
+        
+        const result = this._cachedCoefficient * Math.exp(this._cachedGrowthRate * x);
+        return isFinite(result) ? result : 0;
+    }
+
+    /**
+     * Calculates the correlation coefficient (R-squared) for the exponential fit.
+     * @returns {number} - The correlation coefficient (0-1).
+     */
+    correlation() {
+        if (!this.hasValidData || this.count < 2) return 0;
+        if (!this._cacheValid) {
+            this._computeCoefficients();
+        }
+        return this._cachedCorrelation;
+    }
+
+    /**
+     * Returns the scale (growth rate) of the fitted exponential curve.
+     * @returns {number} - The growth rate of the exponential curve.
+     */
+    scale() {
+        return this.growthRate();
+    }
+
+    _computeCoefficients() {
+        if (!this.hasValidData || this.count < 2) {
+            this._cachedGrowthRate = 0;
+            this._cachedCoefficient = 1;
+            this._cachedCorrelation = 0;
+            this._cacheValid = true;
+            return;
+        }
+
+        const denominator = this.count * this.sumx2 - this.sumx * this.sumx;
+        if (Math.abs(denominator) < 1e-10) {
+            this._cachedGrowthRate = 0;
+            this._cachedCoefficient = 1;
+            this._cachedCorrelation = 0;
+            this._cacheValid = true;
+            return;
+        }
+
+        this._cachedGrowthRate = (this.count * this.sumxlny - this.sumx * this.sumlny) / denominator;
+        const lnA = (this.sumlny - this._cachedGrowthRate * this.sumx) / this.count;
+        this._cachedCoefficient = Math.exp(lnA);
+
+        const meanLnY = this.sumlny / this.count;
+        let ssTotal = 0;
+        let ssRes = 0;
+        
+        for (const point of this.dataPoints) {
+            const predictedLnY = lnA + this._cachedGrowthRate * point.x;
+            ssTotal += Math.pow(point.lny - meanLnY, 2);
+            ssRes += Math.pow(point.lny - predictedLnY, 2);
+        }
+        
+        this._cachedCorrelation = ssTotal === 0 ? 1 : Math.max(0, 1 - (ssRes / ssTotal));
+        this._cacheValid = true;
+    }
+}
+
+/**
+ * Retrieves the x and y scales from the chart instance.
+ * @param {Chart} chartInstance - The chart instance.
+ * @returns {Object} - The xScale and yScale of the chart.
+ */
+const getScales = (chartInstance) => {
+    let xScale, yScale;
+    for (const scale of Object.values(chartInstance.scales)) {
+        if (scale.isHorizontal()) xScale = scale;
+        else yScale = scale;
+        if (xScale && yScale) break;
+    }
+    return { xScale, yScale };
+};
+
+/**
+ * Sets the line style (dashed, dotted, solid) for the canvas context.
+ * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+ * @param {string} lineStyle - The style of the line ('dotted', 'dashed', 'solid', etc.).
+ */
+const setLineStyle = (ctx, lineStyle) => {
+    switch (lineStyle) {
+        case 'dotted':
+            ctx.setLineDash([2, 2]);
+            break;
+        case 'dashed':
+            ctx.setLineDash([8, 3]);
+            break;
+        case 'dashdot':
+            ctx.setLineDash([8, 3, 2, 3]);
+            break;
+        case 'solid':
+        default:
+            ctx.setLineDash([]);
+            break;
+    }
+};
+
+/**
+ * Draws the trendline on the canvas context.
+ * @param {Object} params - The trendline parameters.
+ * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
+ * @param {number} params.x1 - Starting x-coordinate of the trendline.
+ * @param {number} params.y1 - Starting y-coordinate of the trendline.
+ * @param {number} params.x2 - Ending x-coordinate of the trendline.
+ * @param {number} params.y2 - Ending y-coordinate of the trendline.
+ * @param {string} params.colorMin - The starting color of the trendline gradient.
+ * @param {string} params.colorMax - The ending color of the trendline gradient.
+ */
+const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
+    // Ensure all values are finite numbers
+    if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
+        console.warn(
+            'Cannot draw trendline: coordinates contain non-finite values',
+            { x1, y1, x2, y2 }
+        );
+        return;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+
+    try {
+        // Additional validation for degenerate gradients
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const gradientLength = Math.sqrt(dx * dx + dy * dy);
+        
+        // If the gradient vector is too small, createLinearGradient may fail
+        if (gradientLength < 0.01) {
+            console.warn('Gradient vector too small, using solid color:', { x1, y1, x2, y2, length: gradientLength });
+            ctx.strokeStyle = colorMin;
+        } else {
+            let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+            gradient.addColorStop(0, colorMin);
+            gradient.addColorStop(1, colorMax);
+            ctx.strokeStyle = gradient;
+        }
+    } catch (e) {
+        // Fallback to solid color if gradient creation fails
+        console.warn('Gradient creation failed, using solid color:', e);
+        ctx.strokeStyle = colorMin;
+    }
+
+    ctx.stroke();
+    ctx.closePath();
+};
+
+/**
+ * Fills the area below the trendline with the specified color.
+ * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+ * @param {number} x1 - Starting x-coordinate of the trendline.
+ * @param {number} y1 - Starting y-coordinate of the trendline.
+ * @param {number} x2 - Ending x-coordinate of the trendline.
+ * @param {number} y2 - Ending y-coordinate of the trendline.
+ * @param {number} drawBottom - The bottom boundary of the chart.
+ * @param {string} fillColor - The color to fill below the trendline.
+ */
+const fillBelowTrendline = (ctx, x1, y1, x2, y2, drawBottom, fillColor) => {
+    // Ensure all values are finite numbers
+    if (
+        !isFinite(x1) ||
+        !isFinite(y1) ||
+        !isFinite(x2) ||
+        !isFinite(y2) ||
+        !isFinite(drawBottom)
+    ) {
+        console.warn(
+            'Cannot fill below trendline: coordinates contain non-finite values',
+            { x1, y1, x2, y2, drawBottom }
+        );
+        return;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x2, drawBottom);
+    ctx.lineTo(x1, drawBottom);
+    ctx.lineTo(x1, y1);
+    ctx.closePath();
+
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+};
+
+/**
+ * Adds a label to the trendline at the calculated angle.
+ * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+ * @param {string} label - The label text to add.
+ * @param {number} x1 - The starting x-coordinate of the trendline.
+ * @param {number} y1 - The starting y-coordinate of the trendline.
+ * @param {number} x2 - The ending x-coordinate of the trendline.
+ * @param {number} y2 - The ending y-coordinate of the trendline.
+ * @param {number} angle - The angle (in radians) of the trendline.
+ * @param {string} labelColor - The color of the label text.
+ * @param {string} family - The font family for the label text.
+ * @param {number} size - The font size for the label text.
+ * @param {number} offset - The offset of the label from the trendline
+ */
+const addTrendlineLabel = (
+    ctx,
+    label,
+    x1,
+    y1,
+    x2,
+    y2,
+    angle,
+    labelColor,
+    family,
+    size,
+    offset
+) => {
+    // Set the label font and color
+    ctx.font = `${size}px ${family}`;
+    ctx.fillStyle = labelColor;
+
+    // Label width
+    const labelWidth = ctx.measureText(label).width;
+
+    // Calculate the center of the trendline
+    const labelX = (x1 + x2) / 2;
+    const labelY = (y1 + y2) / 2;
+
+    // Save the current state of the canvas
+    ctx.save();
+
+    // Translate to the label position
+    ctx.translate(labelX, labelY);
+
+    // Rotate the context to align with the trendline
+    ctx.rotate(angle);
+
+    // Adjust for the length of the label and rotation
+    const adjustedX = -labelWidth / 2; // Center the label horizontally
+    const adjustedY = offset; // Adjust Y to compensate for the height
+
+    // Draw the label
+    ctx.fillText(label, adjustedX, adjustedY);
+
+    // Restore the canvas state
+    ctx.restore();
+};
 
 /**
  * Adds a trendline (fitter) to the dataset on the chart and optionally labels it with trend value.
@@ -11,7 +433,7 @@ import { addTrendlineLabel } from './label.js';
  * @param {Scale} xScale - The x-axis scale object.
  * @param {Scale} yScale - The y-axis scale object.
  */
-export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
+const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     const yAxisID = dataset.yAxisID || 'y'; // Default to 'y' if no yAxisID is specified
     const yScaleToUse = datasetMeta.controller.chart.scales[yAxisID] || yScale;
 
@@ -245,7 +667,6 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     let clippedCoords = null;
     if (isFinite(x1_px) && isFinite(y1_px) && isFinite(x2_px) && isFinite(y2_px)) {
         clippedCoords = liangBarskyClip(x1_px, y1_px, x2_px, y2_px, chartArea);
-    } else {
     }
 
     if (clippedCoords) {
@@ -254,8 +675,7 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         x2_px = clippedCoords.x2;
         y2_px = clippedCoords.y2;
 
-        if (Math.abs(x1_px - x2_px) < 0.5 && Math.abs(y1_px - y2_px) < 0.5) { 
-        } else {
+        if (Math.abs(x1_px - x2_px) < 0.5 && Math.abs(y1_px - y2_px) < 0.5) ; else {
             ctx.lineWidth = lineWidth;
             setLineStyle(ctx, lineStyle);
             drawTrendline({ ctx, x1: x1_px, y1: y1_px, x2: x2_px, y2: y2_px, colorMin, colorMax });
@@ -297,7 +717,6 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
                 );
             }
         }
-    } else {
     }
 };
 
@@ -374,3 +793,91 @@ function liangBarskyClip(x1, y1, x2, y2, chartArea) {
     return { x1: clippedX1, y1: clippedY1, x2: clippedX2, y2: clippedY2 };
 }
 // Removed adjustLineForOverflow function
+
+const pluginTrendlineLinear = {
+    id: 'chartjs-plugin-trendline',
+
+    afterDatasetsDraw: (chartInstance) => {
+        const ctx = chartInstance.ctx;
+        const { xScale, yScale } = getScales(chartInstance);
+
+        const sortedDatasets = chartInstance.data.datasets
+            .map((dataset, index) => ({ dataset, index }))
+            .filter((entry) => entry.dataset.trendlineLinear || entry.dataset.trendlineExponential)
+            .sort((a, b) => {
+                const orderA = a.dataset.order ?? 0;
+                const orderB = b.dataset.order ?? 0;
+
+                // Push 0-order datasets to the end (they draw last / on top)
+                if (orderA === 0 && orderB !== 0) return 1;
+                if (orderB === 0 && orderA !== 0) return -1;
+
+                // Otherwise, draw lower order first
+                return orderA - orderB;
+            });
+
+        sortedDatasets.forEach(({ dataset, index }) => {
+            const showTrendline =
+                dataset.alwaysShowTrendline ||
+                chartInstance.isDatasetVisible(index);
+
+            if (showTrendline && dataset.data.length > 1) {
+                const datasetMeta = chartInstance.getDatasetMeta(index);
+                addFitter(datasetMeta, ctx, dataset, xScale, yScale);
+            }
+        });
+
+        // Reset to solid line after drawing trendline
+        ctx.setLineDash([]);
+    },
+
+    beforeInit: (chartInstance) => {
+        const datasets = chartInstance.data.datasets;
+
+        datasets.forEach((dataset) => {
+            const trendlineConfig = dataset.trendlineLinear || dataset.trendlineExponential;
+            if (trendlineConfig && trendlineConfig.label) {
+                const label = trendlineConfig.label;
+
+                // Access chartInstance to update legend labels
+                const originalGenerateLabels =
+                    chartInstance.legend.options.labels.generateLabels;
+
+                chartInstance.legend.options.labels.generateLabels = function (
+                    chart
+                ) {
+                    const defaultLabels = originalGenerateLabels(chart);
+
+                    const legendConfig = trendlineConfig.legend;
+
+                    // Display the legend is it's populated and not set to hidden
+                    if (legendConfig && legendConfig.display !== false) {
+                        defaultLabels.push({
+                            text: legendConfig.text || label + ' (Trendline)',
+                            strokeStyle:
+                                legendConfig.color ||
+                                dataset.borderColor ||
+                                'rgba(169,169,169, .6)',
+                            fillStyle: legendConfig.fillStyle || 'transparent',
+                            lineCap: legendConfig.lineCap || 'butt',
+                            lineDash: legendConfig.lineDash || [],
+                            lineWidth: legendConfig.width || 1,
+                        });
+                    }
+                    return defaultLabels;
+                };
+            }
+        });
+    },
+};
+
+// If we're in the browser and have access to the global Chart obj, register plugin automatically
+if (typeof window !== 'undefined' && window.Chart) {
+    if (window.Chart.hasOwnProperty('register')) {
+        window.Chart.register(pluginTrendlineLinear);
+    } else {
+        window.Chart.plugins.register(pluginTrendlineLinear);
+    }
+}
+
+export { pluginTrendlineLinear as default };

@@ -1,4 +1,4 @@
-import { LineFitter } from './lineFitter';
+import { LineFitter } from './lineFitter.js';
 
 describe('LineFitter', () => {
   test('constructor should initialize values correctly', () => {
