@@ -9,27 +9,44 @@ See the plugin in action with interactive examples for different chart types.
 
 ## Installation
 
-#### Load directly in the browser
+> **Note:** Version 3.2.0+ supports ES modules (ESM) for modern bundlers like Vite, SvelteKit, and Next.js. See [MIGRATION.md](./MIGRATION.md) for upgrade details.
 
-Load Chart.js first, then the plugin which will automatically register itself with Chart.js
+### Modern Bundlers (Vite, SvelteKit, Next.js, webpack 5+)
+
+Install via npm:
+
+```bash
+npm i chart.js chartjs-plugin-trendline
+```
+
+Import and register with Chart.js:
+
+```js
+import { Chart } from 'chart.js';
+import ChartJSTrendline from 'chartjs-plugin-trendline';
+
+Chart.register(ChartJSTrendline);
+```
+
+### Node.js (CommonJS)
+
+```js
+const { Chart } = require('chart.js');
+const ChartJSTrendline = require('chartjs-plugin-trendline');
+
+Chart.register(ChartJSTrendline);
+```
+
+### Browser (CDN)
+
+Load Chart.js first, then the plugin which will automatically register itself:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
 ```
 
-#### As a Chart.JS plugin
-
-Install & import the plugin via npm:
-
-`npm i chart.js chartjs-plugin-trendline`
-
-```js
-import ChartJS from 'chart.js';
-import chartTrendline from 'chartjs-plugin-trendline';
-
-ChartJS.plugins.register(chartTrendline);
-```
+The plugin is now available globally as `ChartJSTrendline` and auto-registers with Chart.js.
 
 ## Configuration
 
