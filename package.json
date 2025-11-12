@@ -1,10 +1,20 @@
 {
   "name": "chartjs-plugin-trendline",
-  "version": "3.1.1",
+  "version": "3.2.0",
   "description": "Trendline for Chart.js",
-  "main": "src/index.js",
+  "type": "module",
+  "main": "./dist/chartjs-plugin-trendline.cjs",
+  "module": "./dist/chartjs-plugin-trendline.esm.js",
+  "unpkg": "./dist/chartjs-plugin-trendline.min.js",
+  "jsdelivr": "./dist/chartjs-plugin-trendline.min.js",
+  "exports": {
+    ".": {
+      "import": "./dist/chartjs-plugin-trendline.esm.js",
+      "require": "./dist/chartjs-plugin-trendline.cjs"
+    }
+  },
   "scripts": {
-    "build": "webpack --mode=production",
+    "build": "rollup -c",
     "test": "jest"
   },
   "repository": {
@@ -20,11 +30,11 @@
   "devDependencies": {
     "@babel/core": "^7.24.7",
     "@babel/preset-env": "^7.24.7",
+    "@rollup/plugin-terser": "^0.4.4",
     "babel-jest": "^29.7.0",
     "jest": "^29.7.0",
     "jest-canvas-mock": "^2.5.2",
     "jest-environment-jsdom": "^29.7.0",
-    "webpack": "^5.92.1",
-    "webpack-cli": "^5.1.4"
+    "rollup": "^4.52.5"
   }
 }

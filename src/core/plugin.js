@@ -1,5 +1,5 @@
-import { addFitter } from '../components/trendline';
-import { getScales } from '../utils/drawing';
+import { addFitter } from '../components/trendline.js';
+import { getScales } from '../utils/drawing.js';
 
 export const pluginTrendlineLinear = {
     id: 'chartjs-plugin-trendline',

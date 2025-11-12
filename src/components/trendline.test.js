@@ -1,10 +1,10 @@
-import { addFitter } from './trendline'; 
-import 'jest-canvas-mock'; 
+import { addFitter } from './trendline.js';
+import 'jest-canvas-mock';
 
-import { LineFitter } from '../utils/lineFitter';
-import { ExponentialFitter } from '../utils/exponentialFitter';
-import * as drawingUtils from '../utils/drawing';
-import * as labelUtils from './label';
+import { LineFitter } from '../utils/lineFitter.js';
+import { ExponentialFitter } from '../utils/exponentialFitter.js';
+import * as drawingUtils from '../utils/drawing.js';
+import * as labelUtils from './label.js';
 
 jest.mock('../utils/lineFitter'); 
 jest.mock('../utils/exponentialFitter');
