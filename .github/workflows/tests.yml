@@ -6,21 +6,38 @@ on:
     pull_request:
         branches: ['**'] # Run on all branches for PRs
 
+# Prevent concurrent runs on the same branch
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
 jobs:
-    build:
+    test:
         runs-on: ubuntu-latest
 
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Set up Node.js
-              uses: actions/setup-node@v3
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
               with:
-                  node-version: '22'
+                  version: 9
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '24'
+                  cache: 'pnpm'
 
             - name: Install dependencies
-              run: npm install
+              run: pnpm install --frozen-lockfile
+
+            - name: Build
+              run: pnpm run build
 
             - name: Run tests
-              run: npm test
+              run: pnpm test

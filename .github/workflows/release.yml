@@ -6,6 +6,10 @@ on:
             - 'v*' # Ex: v1.2.3 → publish as latest
             - 'beta/*' # Ex: beta/1.2.3-beta.1 → publish as beta
 
+permissions:
+    contents: read
+    id-token: write # For npm provenance
+
 jobs:
     publish:
         runs-on: ubuntu-latest
@@ -14,17 +18,26 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+
             - name: Set up Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: '22'
+                  node-version: '24'
                   registry-url: 'https://registry.npmjs.org/'
+                  cache: 'pnpm'
 
             - name: Install dependencies
-              run: npm ci
+              run: pnpm install --frozen-lockfile
 
             - name: Build
-              run: npm run build
+              run: pnpm run build
+
+            - name: Run tests
+              run: pnpm test
 
             - name: Verify package.json version matches tag
               run: |
@@ -50,12 +63,12 @@ jobs:
 
             - name: Publish to npm (beta)
               if: startsWith(github.ref, 'refs/tags/beta/')
-              run: npm publish --tag beta
+              run: pnpm publish --tag beta --provenance --access public --no-git-checks
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
             - name: Publish to npm (latest)
               if: startsWith(github.ref, 'refs/tags/v')
-              run: npm publish
+              run: pnpm publish --provenance --access public --no-git-checks
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
