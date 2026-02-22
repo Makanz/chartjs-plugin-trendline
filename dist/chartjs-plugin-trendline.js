@@ -1,7 +1,7 @@
 /*!
  * chartjs-plugin-trendline v3.2.0
  * https://github.com/Makanz/chartjs-plugin-trendline
- * (c) 2025 Marcus Alsterfjord
+ * (c) 2026 Marcus Alsterfjord
  * Released under the MIT license
  */
 (function (global, factory) {
@@ -842,9 +842,7 @@
 
             datasets.forEach((dataset) => {
                 const trendlineConfig = dataset.trendlineLinear || dataset.trendlineExponential;
-                if (trendlineConfig && trendlineConfig.label) {
-                    const label = trendlineConfig.label;
-
+                if (trendlineConfig && (trendlineConfig.label || trendlineConfig.legend)) {
                     // Access chartInstance to update legend labels
                     const originalGenerateLabels =
                         chartInstance.legend.options.labels.generateLabels;
@@ -856,18 +854,19 @@
 
                         const legendConfig = trendlineConfig.legend;
 
-                        // Display the legend is it's populated and not set to hidden
+                        // Display the legend if it's populated and not set to hidden
                         if (legendConfig && legendConfig.display !== false) {
                             defaultLabels.push({
-                                text: legendConfig.text || label + ' (Trendline)',
+                                text: legendConfig.text || dataset.label || 'Trendline',
                                 strokeStyle:
+                                    legendConfig.strokeStyle ||
                                     legendConfig.color ||
                                     dataset.borderColor ||
                                     'rgba(169,169,169, .6)',
                                 fillStyle: legendConfig.fillStyle || 'transparent',
                                 lineCap: legendConfig.lineCap || 'butt',
                                 lineDash: legendConfig.lineDash || [],
-                                lineWidth: legendConfig.width || 1,
+                                lineWidth: legendConfig.lineWidth ?? legendConfig.width ?? 1,
                             });
                         }
                         return defaultLabels;
