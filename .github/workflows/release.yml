@@ -2,6 +2,8 @@ name: release
 
 on:
     push:
+        branches:
+            - main
         tags:
             - 'v*' # Ex: v1.2.3 → publish as latest
             - 'beta/*' # Ex: beta/1.2.3-beta.1 → publish as beta
