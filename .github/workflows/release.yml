@@ -2,8 +2,6 @@ name: release
 
 on:
     push:
-        branches:
-            - main
         tags:
             - 'v*' # Ex: v1.2.3 → publish as latest
             - 'beta/*' # Ex: beta/1.2.3-beta.1 → publish as beta
@@ -19,6 +17,15 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+
+            - name: Verify tag is on main branch
+              run: |
+                  git fetch origin main --depth=1
+                  if ! git merge-base --is-ancestor HEAD origin/main; then
+                    echo "::error ::❌ Tag commit is not on main branch — release cancelled"
+                    exit 1
+                  fi
+                  echo "✅ Tag is on main branch"
 
             - name: Set up Node.js
               uses: actions/setup-node@v4
