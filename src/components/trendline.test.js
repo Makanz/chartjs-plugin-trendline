@@ -623,16 +623,13 @@ describe('addFitter - Exponential Trendlines', () => {
         
         expect(labelUtils.addTrendlineLabel).toHaveBeenCalledWith(
             mockCtx,
-            'Exponential Trend (a=2.05, b=0.48)',
-            expect.any(Number),
-            expect.any(Number),
-            expect.any(Number),
-            expect.any(Number),
-            expect.any(Number),
-            'black',
-            'Arial',
-            12,
-            5
+            expect.objectContaining({
+                label: 'Exponential Trend (a=2.05, b=0.48)',
+                labelColor: 'black',
+                family: 'Arial',
+                size: 12,
+                offset: 5,
+            })
         );
     });
 

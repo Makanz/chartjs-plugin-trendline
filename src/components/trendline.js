@@ -282,19 +282,18 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
                         })`;
                     }
                 }
-                addTrendlineLabel(
-                    ctx,
-                    trendText,
-                    x1_px, 
-                    y1_px,
-                    x2_px,
-                    y2_px,
+                addTrendlineLabel(ctx, {
+                    label: trendText,
+                    x1: x1_px,
+                    y1: y1_px,
+                    x2: x2_px,
+                    y2: y2_px,
                     angle,
-                    color,
+                    labelColor: color,
                     family,
                     size,
-                    offset
-                );
+                    offset,
+                });
             }
         }
     } else {

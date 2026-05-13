@@ -32,16 +32,15 @@ describe('addTrendlineLabel', () => {
 
 
     test('should correctly set label text and style', () => {
-        addTrendlineLabel(
-            mockCtx,
-            mockLabel,
-            mockX1, mockY1, mockX2, mockY2,
-            mockAngle,
-            mockLabelColor,
-            mockFamily,
-            mockSize,
-            mockOffset
-        );
+        addTrendlineLabel(mockCtx, {
+            label: mockLabel,
+            x1: mockX1, y1: mockY1, x2: mockX2, y2: mockY2,
+            angle: mockAngle,
+            labelColor: mockLabelColor,
+            family: mockFamily,
+            size: mockSize,
+            offset: mockOffset,
+        });
 
         expect(mockCtx.fillText).toHaveBeenCalledWith(mockLabel, expect.any(Number), expect.any(Number));
         expect(mockCtx.measureText).toHaveBeenCalledWith(mockLabel);
@@ -50,16 +49,15 @@ describe('addTrendlineLabel', () => {
     });
 
     test('should correctly apply transformations and positioning', () => {
-        addTrendlineLabel(
-            mockCtx,
-            mockLabel,
-            mockX1, mockY1, mockX2, mockY2,
-            mockAngle,
-            mockLabelColor,
-            mockFamily,
-            mockSize,
-            mockOffset
-        );
+        addTrendlineLabel(mockCtx, {
+            label: mockLabel,
+            x1: mockX1, y1: mockY1, x2: mockX2, y2: mockY2,
+            angle: mockAngle,
+            labelColor: mockLabelColor,
+            family: mockFamily,
+            size: mockSize,
+            offset: mockOffset,
+        });
 
         const midX = (mockX1 + mockX2) / 2;
         const midY = (mockY1 + mockY2) / 2;
@@ -74,16 +72,15 @@ describe('addTrendlineLabel', () => {
     });
 
     test('should save and restore canvas state', () => {
-        addTrendlineLabel(
-            mockCtx,
-            mockLabel,
-            mockX1, mockY1, mockX2, mockY2,
-            mockAngle,
-            mockLabelColor,
-            mockFamily,
-            mockSize,
-            mockOffset
-        );
+        addTrendlineLabel(mockCtx, {
+            label: mockLabel,
+            x1: mockX1, y1: mockY1, x2: mockX2, y2: mockY2,
+            angle: mockAngle,
+            labelColor: mockLabelColor,
+            family: mockFamily,
+            size: mockSize,
+            offset: mockOffset,
+        });
 
         expect(mockCtx.save).toHaveBeenCalledTimes(1);
         expect(mockCtx.restore).toHaveBeenCalledTimes(1);
@@ -95,17 +92,16 @@ describe('addTrendlineLabel', () => {
 
     test('should handle zero offset correctly', () => {
         const currentOffset = 0;
-        addTrendlineLabel(
-            mockCtx,
-            mockLabel,
-            mockX1, mockY1, mockX2, mockY2,
-            mockAngle,
-            mockLabelColor,
-            mockFamily,
-            mockSize,
-            currentOffset // Using zero offset
-        );
-        
+        addTrendlineLabel(mockCtx, {
+            label: mockLabel,
+            x1: mockX1, y1: mockY1, x2: mockX2, y2: mockY2,
+            angle: mockAngle,
+            labelColor: mockLabelColor,
+            family: mockFamily,
+            size: mockSize,
+            offset: currentOffset,
+        });
+
         const labelWidth = mockCtx.measureText(mockLabel).width;
         const adjustedX = -labelWidth / 2;
         const adjustedY = currentOffset; // y is the offset itself
@@ -114,16 +110,15 @@ describe('addTrendlineLabel', () => {
 
     test('should handle different angle correctly', () => {
         const currentAngle = Math.PI / 2; // 90 degrees
-        addTrendlineLabel(
-            mockCtx,
-            mockLabel,
-            mockX1, mockY1, mockX2, mockY2,
-            currentAngle, // Using different angle
-            mockLabelColor,
-            mockFamily,
-            mockSize,
-            mockOffset
-        );
+        addTrendlineLabel(mockCtx, {
+            label: mockLabel,
+            x1: mockX1, y1: mockY1, x2: mockX2, y2: mockY2,
+            angle: currentAngle,
+            labelColor: mockLabelColor,
+            family: mockFamily,
+            size: mockSize,
+            offset: mockOffset,
+        });
         expect(mockCtx.rotate).toHaveBeenCalledWith(currentAngle);
     });
 });

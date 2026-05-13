@@ -1,30 +1,28 @@
 /**
  * Adds a label to the trendline at the calculated angle.
  * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
- * @param {string} label - The label text to add.
- * @param {number} x1 - The starting x-coordinate of the trendline.
- * @param {number} y1 - The starting y-coordinate of the trendline.
- * @param {number} x2 - The ending x-coordinate of the trendline.
- * @param {number} y2 - The ending y-coordinate of the trendline.
- * @param {number} angle - The angle (in radians) of the trendline.
- * @param {string} labelColor - The color of the label text.
- * @param {string} family - The font family for the label text.
- * @param {number} size - The font size for the label text.
- * @param {number} offset - The offset of the label from the trendline
+ * @param {Object} options - Configuration options for the label.
+ * @param {string} options.label - The label text to add.
+ * @param {number} options.x1 - The starting x-coordinate of the trendline.
+ * @param {number} options.y1 - The starting y-coordinate of the trendline.
+ * @param {number} options.x2 - The ending x-coordinate of the trendline.
+ * @param {number} options.y2 - The ending y-coordinate of the trendline.
+ * @param {number} options.angle - The angle (in radians) of the trendline.
+ * @param {string} options.labelColor - The color of the label text.
+ * @param {string} options.family - The font family for the label text.
+ * @param {number} options.size - The font size for the label text.
+ * @param {number} options.offset - The offset of the label from the trendline.
  */
-export const addTrendlineLabel = (
-    ctx,
-    label,
-    x1,
-    y1,
-    x2,
-    y2,
-    angle,
-    labelColor,
-    family,
-    size,
-    offset
-) => {
+export const addTrendlineLabel = (ctx, options) => {
+    const {
+        label,
+        x1, y1, x2, y2,
+        angle,
+        labelColor,
+        family,
+        size,
+        offset,
+    } = options;
     // Set the label font and color
     ctx.font = `${size}px ${family}`;
     ctx.fillStyle = labelColor;
