@@ -37,6 +37,25 @@ export const setLineStyle = (ctx, lineStyle) => {
 };
 
 /**
+ * Validates that all provided named coordinate values are finite numbers.
+ * @param {Object<string, number>} coords - Named coordinate values to validate.
+ * @param {string} label - Label for the warning message (e.g., 'draw trendline').
+ * @returns {boolean} - True if all values are finite, false otherwise.
+ */
+const validateFiniteCoords = (coords, label) => {
+    for (const value of Object.values(coords)) {
+        if (!isFinite(value)) {
+            console.warn(
+                `Cannot ${label}: coordinates contain non-finite values`,
+                coords
+            );
+            return false;
+        }
+    }
+    return true;
+};
+
+/**
  * Draws the trendline on the canvas context.
  * @param {Object} params - The trendline parameters.
  * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
@@ -48,14 +67,7 @@ export const setLineStyle = (ctx, lineStyle) => {
  * @param {string} params.colorMax - The ending color of the trendline gradient.
  */
 export const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
-    // Ensure all values are finite numbers
-    if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
-        console.warn(
-            'Cannot draw trendline: coordinates contain non-finite values',
-            { x1, y1, x2, y2 }
-        );
-        return;
-    }
+    if (!validateFiniteCoords({ x1, y1, x2, y2 }, 'draw trendline')) return;
 
     ctx.beginPath();
     ctx.moveTo(x1, y1);
@@ -98,20 +110,7 @@ export const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
  * @param {string} fillColor - The color to fill below the trendline.
  */
 export const fillBelowTrendline = (ctx, x1, y1, x2, y2, drawBottom, fillColor) => {
-    // Ensure all values are finite numbers
-    if (
-        !isFinite(x1) ||
-        !isFinite(y1) ||
-        !isFinite(x2) ||
-        !isFinite(y2) ||
-        !isFinite(drawBottom)
-    ) {
-        console.warn(
-            'Cannot fill below trendline: coordinates contain non-finite values',
-            { x1, y1, x2, y2, drawBottom }
-        );
-        return;
-    }
+    if (!validateFiniteCoords({ x1, y1, x2, y2, drawBottom }, 'fill below trendline')) return;
 
     ctx.beginPath();
     ctx.moveTo(x1, y1);
