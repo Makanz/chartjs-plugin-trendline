@@ -1,5 +1,48 @@
 import { pluginTrendlineLinear } from './plugin.js';
 
+describe('pluginTrendlineLinear.afterInit - accessibility', () => {
+    let chartInstance;
+
+    beforeEach(() => {
+        chartInstance = {
+            canvas: document.createElement('canvas'),
+            data: {
+                datasets: [
+                    {
+                        label: 'Test Set',
+                        trendlineLinear: {},
+                    },
+                ],
+            },
+        };
+    });
+
+    it('should apply canvas accessibility on afterInit', () => {
+        pluginTrendlineLinear.afterInit(chartInstance);
+        expect(chartInstance.canvas.getAttribute('role')).toBe('img');
+        expect(chartInstance.canvas.getAttribute('aria-label')).toContain('Linear trendline for Test Set');
+    });
+
+    it('should handle afterInit when no trendline datasets exist', () => {
+        chartInstance.data.datasets = [{ label: 'Plain Data' }];
+        pluginTrendlineLinear.afterInit(chartInstance);
+        expect(chartInstance.canvas.getAttribute('role')).toBe('img');
+        // No aria-label set since there are no trendlines
+        expect(chartInstance.canvas.hasAttribute('aria-label')).toBe(false);
+    });
+
+    it('should refresh accessibility on afterUpdate', () => {
+        pluginTrendlineLinear.afterInit(chartInstance);
+
+        // Simulate data update
+        chartInstance.data.datasets[0].label = 'Updated Label';
+        pluginTrendlineLinear.afterUpdate(chartInstance);
+
+        const label = chartInstance.canvas.getAttribute('aria-label');
+        expect(label).toContain('Updated Label');
+    });
+});
+
 describe('pluginTrendlineLinear.beforeInit - legend generation', () => {
     let chartInstance;
     let originalGenerateLabels;

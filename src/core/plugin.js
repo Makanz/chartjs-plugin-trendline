@@ -1,5 +1,6 @@
 import { addFitter } from '../components/trendline.js';
 import { getScales } from '../utils/drawing.js';
+import { applyCanvasAccessibility } from '../utils/accessibility.js';
 
 export const pluginTrendlineLinear = {
     id: 'chartjs-plugin-trendline',
@@ -36,6 +37,14 @@ export const pluginTrendlineLinear = {
 
         // Reset to solid line after drawing trendline
         ctx.setLineDash([]);
+    },
+
+    afterInit: (chartInstance) => {
+        applyCanvasAccessibility(chartInstance);
+    },
+
+    afterUpdate: (chartInstance) => {
+        applyCanvasAccessibility(chartInstance);
     },
 
     beforeInit: (chartInstance) => {
