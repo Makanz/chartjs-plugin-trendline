@@ -76,6 +76,104 @@ export const collectDataPoints = (fitter, dataset, trendoffset, effectiveFirstIn
 };
 
 /**
+ * Calculates the pixel coordinates for the trendline, handling both projection and non-projection modes.
+ * Projection mode extends the trendline across the full chart area, while non-projection mode
+ * fits the line exactly to the data range.
+ * @param {Object} fitter - The fitter instance (LineFitter or ExponentialFitter).
+ * @param {boolean} isExponential - Whether the trendline is exponential.
+ * @param {Object} trendlineConfig - The trendline configuration object.
+ * @param {Scale} xScale - The x-axis scale object.
+ * @param {Scale} yScaleToUse - The y-axis scale object to use.
+ * @param {Object} chartArea - The chart area with { left, right, top, bottom } pixel boundaries.
+ * @returns {Object} An object with { x1_px, y1_px, x2_px, y2_px } pixel coordinates.
+ */
+export const calculateProjectedCoordinates = (fitter, isExponential, trendlineConfig, xScale, yScaleToUse, chartArea) => {
+    let x1_px, y1_px, x2_px, y2_px;
+
+    // Determine trendline start/end points based on the 'projection' option.
+    if (trendlineConfig.projection) {
+        let points = [];
+
+        if (isExponential) {
+            // For exponential curves, we generate points across the x-axis range
+            const val_x_left = xScale.getValueForPixel(chartArea.left);
+            const y_at_left = fitter.f(val_x_left);
+            points.push({ x: val_x_left, y: y_at_left });
+
+            const val_x_right = xScale.getValueForPixel(chartArea.right);
+            const y_at_right = fitter.f(val_x_right);
+            points.push({ x: val_x_right, y: y_at_right });
+        } else {
+            // Linear projection logic
+            const slope = fitter.slope();
+            const intercept = fitter.intercept();
+
+            if (Math.abs(slope) > 1e-6) {
+                const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
+                const x_at_top = (val_y_top - intercept) / slope;
+                points.push({ x: x_at_top, y: val_y_top });
+
+                const val_y_bottom = yScaleToUse.getValueForPixel(chartArea.bottom);
+                const x_at_bottom = (val_y_bottom - intercept) / slope;
+                points.push({ x: x_at_bottom, y: val_y_bottom });
+            } else {
+                points.push({ x: xScale.getValueForPixel(chartArea.left), y: intercept });
+                points.push({ x: xScale.getValueForPixel(chartArea.right), y: intercept });
+            }
+
+            const val_x_left = xScale.getValueForPixel(chartArea.left);
+            const y_at_left = fitter.f(val_x_left);
+            points.push({ x: val_x_left, y: y_at_left });
+
+            const val_x_right = xScale.getValueForPixel(chartArea.right);
+            const y_at_right = fitter.f(val_x_right);
+            points.push({ x: val_x_right, y: y_at_right });
+        }
+
+        const chartMinX = xScale.getValueForPixel(chartArea.left);
+        const chartMaxX = xScale.getValueForPixel(chartArea.right);
+
+        const yValsFromPixels = [yScaleToUse.getValueForPixel(chartArea.top), yScaleToUse.getValueForPixel(chartArea.bottom)];
+        const finiteYVals = yValsFromPixels.filter(y => isFinite(y));
+        const actualChartMinY = finiteYVals.length > 0 ? Math.min(...finiteYVals) : -Infinity;
+        const actualChartMaxY = finiteYVals.length > 0 ? Math.max(...finiteYVals) : Infinity;
+
+        let validPoints = points.filter(p =>
+            isFinite(p.x) && isFinite(p.y) &&
+            p.x >= chartMinX && p.x <= chartMaxX && p.y >= actualChartMinY && p.y <= actualChartMaxY
+        );
+
+        validPoints = validPoints.filter((point, index, self) =>
+            index === self.findIndex((t) => (
+                Math.abs(t.x - point.x) < 1e-4 && Math.abs(t.y - point.y) < 1e-4
+            ))
+        );
+
+        if (validPoints.length >= 2) {
+            validPoints.sort((a, b) => a.x - b.x || a.y - b.y);
+
+            x1_px = xScale.getPixelForValue(validPoints[0].x);
+            y1_px = yScaleToUse.getPixelForValue(validPoints[0].y);
+            x2_px = xScale.getPixelForValue(validPoints[validPoints.length - 1].x);
+            y2_px = yScaleToUse.getPixelForValue(validPoints[validPoints.length - 1].y);
+        } else {
+            x1_px = NaN; y1_px = NaN; x2_px = NaN; y2_px = NaN;
+        }
+
+    } else {
+        const y_at_minx = fitter.f(fitter.minx);
+        const y_at_maxx = fitter.f(fitter.maxx);
+
+        x1_px = xScale.getPixelForValue(fitter.minx);
+        y1_px = yScaleToUse.getPixelForValue(y_at_minx);
+        x2_px = xScale.getPixelForValue(fitter.maxx);
+        y2_px = yScaleToUse.getPixelForValue(y_at_maxx);
+    }
+
+    return { x1_px, y1_px, x2_px, y2_px };
+};
+
+/**
  * Adds a trendline (fitter) to the dataset on the chart and optionally labels it with trend value.
  * @param {Object} datasetMeta - Metadata about the dataset.
  * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
@@ -172,91 +270,11 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
         return; // Not enough data points to calculate a trendline.
     }
 
-    // These variables will hold the pixel coordinates for drawing the trendline.
-    let x1_px, y1_px, x2_px, y2_px; 
-
     const chartArea = datasetMeta.controller.chart.chartArea; // Defines the drawable area in pixels.
 
-    // Determine trendline start/end points based on the 'projection' option.
-    if (trendlineConfig.projection) {
-        let points = [];
-
-        if (isExponential) {
-            // For exponential curves, we generate points across the x-axis range
-            const val_x_left = xScale.getValueForPixel(chartArea.left);
-            const y_at_left = fitter.f(val_x_left); 
-            points.push({ x: val_x_left, y: y_at_left });
-
-            const val_x_right = xScale.getValueForPixel(chartArea.right);
-            const y_at_right = fitter.f(val_x_right); 
-            points.push({ x: val_x_right, y: y_at_right });
-        } else {
-            // Linear projection logic (existing code)
-            const slope = fitter.slope();
-            const intercept = fitter.intercept();
-
-            if (Math.abs(slope) > 1e-6) { 
-                const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
-                const x_at_top = (val_y_top - intercept) / slope; 
-                points.push({ x: x_at_top, y: val_y_top });
-
-                const val_y_bottom = yScaleToUse.getValueForPixel(chartArea.bottom);
-                const x_at_bottom = (val_y_bottom - intercept) / slope; 
-                points.push({ x: x_at_bottom, y: val_y_bottom });
-            } else { 
-                 points.push({ x: xScale.getValueForPixel(chartArea.left), y: intercept});
-                 points.push({ x: xScale.getValueForPixel(chartArea.right), y: intercept});
-            }
-
-            const val_x_left = xScale.getValueForPixel(chartArea.left);
-            const y_at_left = fitter.f(val_x_left); 
-            points.push({ x: val_x_left, y: y_at_left });
-
-            const val_x_right = xScale.getValueForPixel(chartArea.right);
-            const y_at_right = fitter.f(val_x_right); 
-            points.push({ x: val_x_right, y: y_at_right });
-        }
-        
-        const chartMinX = xScale.getValueForPixel(chartArea.left); 
-        const chartMaxX = xScale.getValueForPixel(chartArea.right); 
-        
-        const yValsFromPixels = [yScaleToUse.getValueForPixel(chartArea.top), yScaleToUse.getValueForPixel(chartArea.bottom)];
-        const finiteYVals = yValsFromPixels.filter(y => isFinite(y));
-        // Ensure actualChartMinY and actualChartMaxY are correctly ordered for the filter
-        const actualChartMinY = finiteYVals.length > 0 ? Math.min(...finiteYVals) : -Infinity; 
-        const actualChartMaxY = finiteYVals.length > 0 ? Math.max(...finiteYVals) : Infinity;
-        
-        let validPoints = points.filter(p => 
-            isFinite(p.x) && isFinite(p.y) && 
-            p.x >= chartMinX && p.x <= chartMaxX && p.y >= actualChartMinY && p.y <= actualChartMaxY
-        );
-        
-        validPoints = validPoints.filter((point, index, self) =>
-            index === self.findIndex((t) => (
-                Math.abs(t.x - point.x) < 1e-4 && Math.abs(t.y - point.y) < 1e-4 
-            ))
-        );
-        
-        if (validPoints.length >= 2) {
-            validPoints.sort((a,b) => a.x - b.x || a.y - b.y); 
-
-            x1_px = xScale.getPixelForValue(validPoints[0].x);
-            y1_px = yScaleToUse.getPixelForValue(validPoints[0].y);
-            x2_px = xScale.getPixelForValue(validPoints[validPoints.length - 1].x);
-            y2_px = yScaleToUse.getPixelForValue(validPoints[validPoints.length - 1].y);
-        } else {
-            x1_px = NaN; y1_px = NaN; x2_px = NaN; y2_px = NaN;
-        }
-
-    } else {
-        const y_at_minx = fitter.f(fitter.minx); 
-        const y_at_maxx = fitter.f(fitter.maxx); 
-
-        x1_px = xScale.getPixelForValue(fitter.minx);
-        y1_px = yScaleToUse.getPixelForValue(y_at_minx);
-        x2_px = xScale.getPixelForValue(fitter.maxx);
-        y2_px = yScaleToUse.getPixelForValue(y_at_maxx);
-    }
+    let { x1_px, y1_px, x2_px, y2_px } = calculateProjectedCoordinates(
+        fitter, isExponential, trendlineConfig, xScale, yScaleToUse, chartArea
+    );
 
     // --- Line Clipping and Drawing ---
     let clippedCoords = null;
