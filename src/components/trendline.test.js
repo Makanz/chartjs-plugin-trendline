@@ -920,3 +920,143 @@ describe('addFitter - Exponential Trendlines', () => {
         expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled();
     });
 });
+
+describe('collectDataPoints', () => {
+    let mockFitter;
+    let mockXScale;
+
+    beforeEach(() => {
+        mockFitter = { add: jest.fn() };
+        mockXScale = {
+            options: { type: 'linear' },
+        };
+    });
+
+    test('collects object data points (xy=true)', () => {
+        const dataset = { data: [{ x: 10, y: 30 }, { x: 20, y: 50 }, { x: 30, y: 70 }] };
+
+        collectDataPoints(mockFitter, dataset, 0, 0, true, mockXScale, 'x', 'y', []);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(3);
+        expect(mockFitter.add).toHaveBeenCalledWith(10, 30);
+        expect(mockFitter.add).toHaveBeenCalledWith(20, 50);
+        expect(mockFitter.add).toHaveBeenCalledWith(30, 70);
+    });
+
+    test('skips null and undefined data points', () => {
+        const dataset = { data: [{ x: 10, y: 30 }, null, { x: 20, y: 50 }, undefined, { x: 30, y: 70 }] };
+
+        collectDataPoints(mockFitter, dataset, 0, 0, true, mockXScale, 'x', 'y', []);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(3);
+        expect(mockFitter.add).toHaveBeenCalledWith(10, 30);
+        expect(mockFitter.add).toHaveBeenCalledWith(20, 50);
+        expect(mockFitter.add).toHaveBeenCalledWith(30, 70);
+    });
+
+    test('skips NaN y-values for object data', () => {
+        const dataset = { data: [{ x: 10, y: 30 }, { x: 20, y: NaN }, { x: 30, y: 70 }] };
+
+        collectDataPoints(mockFitter, dataset, 0, 0, true, mockXScale, 'x', 'y', []);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(2);
+        expect(mockFitter.add).toHaveBeenCalledWith(10, 30);
+        expect(mockFitter.add).toHaveBeenCalledWith(30, 70);
+    });
+
+    test('applies positive trendoffset — skips first n points', () => {
+        const dataset = { data: [{ x: 10, y: 30 }, { x: 20, y: 50 }, { x: 30, y: 70 }] };
+
+        collectDataPoints(mockFitter, dataset, 1, 1, true, mockXScale, 'x', 'y', []);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(2);
+        expect(mockFitter.add).not.toHaveBeenCalledWith(10, 30);
+        expect(mockFitter.add).toHaveBeenCalledWith(20, 50);
+        expect(mockFitter.add).toHaveBeenCalledWith(30, 70);
+    });
+
+    test('applies negative trendoffset — skips last n points', () => {
+        const dataset = { data: [{ x: 10, y: 30 }, { x: 20, y: 50 }, { x: 30, y: 70 }] };
+
+        collectDataPoints(mockFitter, dataset, -1, 0, true, mockXScale, 'x', 'y', []);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(2);
+        expect(mockFitter.add).toHaveBeenCalledWith(10, 30);
+        expect(mockFitter.add).toHaveBeenCalledWith(20, 50);
+        expect(mockFitter.add).not.toHaveBeenCalledWith(30, 70);
+    });
+
+    test('collects array data points (xy=false) using index as x', () => {
+        const dataset = { data: [10, 20, 30, 40, 50] };
+
+        collectDataPoints(mockFitter, dataset, 0, 0, false, mockXScale, 'x', 'y', []);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(5);
+        expect(mockFitter.add).toHaveBeenCalledWith(0, 10);
+        expect(mockFitter.add).toHaveBeenCalledWith(1, 20);
+        expect(mockFitter.add).toHaveBeenCalledWith(2, 30);
+        expect(mockFitter.add).toHaveBeenCalledWith(3, 40);
+        expect(mockFitter.add).toHaveBeenCalledWith(4, 50);
+    });
+
+    test('skips null/NaN values in array data', () => {
+        const dataset = { data: [10, null, 30, undefined, 50] };
+
+        collectDataPoints(mockFitter, dataset, 0, 0, false, mockXScale, 'x', 'y', []);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(3);
+        expect(mockFitter.add).toHaveBeenCalledWith(0, 10);
+        expect(mockFitter.add).toHaveBeenCalledWith(2, 30);
+        expect(mockFitter.add).toHaveBeenCalledWith(4, 50);
+    });
+
+    test('handles time scale with object data — converts dates to timestamps', () => {
+        mockXScale.options.type = 'time';
+        const date1 = new Date('2023-01-01T00:00:00.000Z');
+        const date2 = new Date('2023-01-02T00:00:00.000Z');
+        const dataset = {
+            data: [
+                { x: date1.toISOString(), y: 10 },
+                { x: date2.toISOString(), y: 20 },
+            ],
+        };
+
+        collectDataPoints(mockFitter, dataset, 0, 0, true, mockXScale, 'x', 'y', []);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(2);
+        expect(mockFitter.add).toHaveBeenCalledWith(date1.getTime(), 10);
+        expect(mockFitter.add).toHaveBeenCalledWith(date2.getTime(), 20);
+    });
+
+    test('handles time scale with array data — uses chartLabels for x values', () => {
+        mockXScale.options.type = 'timeseries';
+        const date1 = new Date('2025-03-01T00:00:00');
+        const date2 = new Date('2025-03-02T00:00:00');
+        const chartLabels = [
+            '2025-03-01T00:00:00',
+            '2025-03-02T00:00:00',
+        ];
+        const dataset = { data: [75, 64] };
+
+        collectDataPoints(mockFitter, dataset, 0, 0, false, mockXScale, 'x', 'y', chartLabels);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(2);
+        expect(mockFitter.add).toHaveBeenCalledWith(date1.getTime(), 75);
+        expect(mockFitter.add).toHaveBeenCalledWith(date2.getTime(), 64);
+    });
+
+    test('uses custom xAxisKey and yAxisKey for object data', () => {
+        const dataset = {
+            data: [
+                { customX: 5, customY: 15 },
+                { customX: 10, customY: 25 },
+            ],
+        };
+
+        collectDataPoints(mockFitter, dataset, 0, 0, true, mockXScale, 'customX', 'customY', []);
+
+        expect(mockFitter.add).toHaveBeenCalledTimes(2);
+        expect(mockFitter.add).toHaveBeenCalledWith(5, 15);
+        expect(mockFitter.add).toHaveBeenCalledWith(10, 25);
+    });
+});
