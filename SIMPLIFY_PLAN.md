@@ -10,4 +10,4 @@ Varje cron-run plockar nästa ocheckade punkt, gör en refactoring-branch med ti
 - [x] **refactor/trendline-data-extraction** — `trendline.js`: bryt ut datainsamlingslogiken (forEach-loopen) ur `addFitter` till en egen `collectDataPoints`-funktion.
 - [x] **refactor/trendline-projection** — `trendline.js`: bryt ut projection-koordinatberäkningen ur `addFitter` till en egen funktion.
 - [x] **refactor/fitter-base-class** — `lineFitter.js` + `exponentialFitter.js`: skapa en gemensam `BaseFitter`-klass för delad caching- och summeringslogik.
-- [ ] **refactor/index-browser-check** — `index.js`: förenkla browser detection med modernare pattern.
+- [x] **refactor/index-browser-check** — `index.js`: förenkla browser detection med modernare pattern.
