@@ -1,18 +1,15 @@
+import { BaseFitter } from './baseFitter.js';
+
 /**
  * A class that fits a line to a series of points using least squares.
  */
-export class LineFitter {
+export class LineFitter extends BaseFitter {
     constructor() {
-        this.count = 0;
-        this.sumx = 0;
+        super();
         this.sumy = 0;
-        this.sumx2 = 0;
         this.sumxy = 0;
-        this.minx = Number.MAX_VALUE;
-        this.maxx = Number.MIN_VALUE;
         this._cachedSlope = null;
         this._cachedIntercept = null;
-        this._cacheValid = false;
     }
 
     /**
@@ -21,14 +18,9 @@ export class LineFitter {
      * @param {number} y - The y-coordinate of the point.
      */
     add(x, y) {
-        this.sumx += x;
+        super.add(x);
         this.sumy += y;
-        this.sumx2 += x * x;
         this.sumxy += x * y;
-        if (x < this.minx) this.minx = x;
-        if (x > this.maxx) this.maxx = x;
-        this.count++;
-        this._cacheValid = false;
     }
 
     /**
