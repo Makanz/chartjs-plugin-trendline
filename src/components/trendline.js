@@ -4,6 +4,78 @@ import { drawTrendline, fillBelowTrendline, setLineStyle } from '../utils/drawin
 import { addTrendlineLabel } from './label.js';
 
 /**
+ * Collects valid data points from a dataset and adds them to the fitter.
+ * Handles null/undefined values, trendoffset logic, time scales, and different
+ * data structures (object {x,y} vs array of numbers).
+ * @param {Object} fitter - The fitter instance (LineFitter or ExponentialFitter).
+ * @param {Object} dataset - The dataset configuration from the chart.
+ * @param {number} trendoffset - Number of data points to skip (positive from start, negative from end).
+ * @param {number} effectiveFirstIndex - The index of the first valid data point.
+ * @param {boolean} xy - Whether the data is structured as objects {x,y}.
+ * @param {Scale} xScale - The x-axis scale object.
+ * @param {string} xAxisKey - Key for x-values in object data.
+ * @param {string} yAxisKey - Key for y-values in object data.
+ * @param {Array} chartLabels - Labels array from chart (for time scales with array data).
+ */
+export const collectDataPoints = (fitter, dataset, trendoffset, effectiveFirstIndex, xy, xScale, xAxisKey, yAxisKey, chartLabels) => {
+    dataset.data.forEach((data, index) => {
+        // Skip any data point that is null or undefined directly. This is a general guard.
+        if (data == null) return; 
+        
+        // Apply trendoffset logic for including/excluding points:
+        // 1. Positive offset: Skip data points if their index is before the `effectiveFirstIndex`.
+        //    `effectiveFirstIndex` already accounts for the offset and initial nulls.
+        if (trendoffset > 0 && index < effectiveFirstIndex) return;
+        // 2. Negative offset: Skip data points if their index is at or after the calculated end point.
+        //    `dataset.data.length + trendoffset` marks the first index of the points to be excluded from the end.
+        //    For example, if length is 10 and offset is -2, points from index 8 onwards are skipped.
+        if (trendoffset < 0 && index >= dataset.data.length + trendoffset) return;
+
+        // Process data based on scale type and data structure.
+        if (['time', 'timeseries'].includes(xScale.options.type) && xy) {
+            // For time-based scales with object data, convert x to a numerical timestamp; ensure y is a valid number.
+            let x = data[xAxisKey] != null ? data[xAxisKey] : data.t; // `data.t` is a Chart.js internal fallback for time data.
+            const yValue = data[yAxisKey];
+
+            // Both x and y must be valid for the point to be included.
+            if (x != null && x !== undefined && yValue != null && !isNaN(yValue)) {
+                fitter.add(new Date(x).getTime(), yValue);
+            }
+            // If x or yValue is invalid, the point is skipped.
+        } else if (xy) { // Data is identified as array of objects {x,y}.
+            const xVal = data[xAxisKey];
+            const yVal = data[yAxisKey];
+
+            const xIsValid = xVal != null && !isNaN(xVal);
+            const yIsValid = yVal != null && !isNaN(yVal);
+
+            // Both xVal and yVal must be valid numbers to include the point.
+            if (xIsValid && yIsValid) {
+                fitter.add(xVal, yVal);
+            }
+            // If either xVal or yVal is invalid, the point is skipped. No fallback to using index.
+        } else if (['time', 'timeseries'].includes(xScale.options.type) && !xy) {
+            // For time-based scales with array of numbers, get the x-value from the chart labels
+            if (chartLabels && chartLabels[index] && data != null && !isNaN(data)) {
+                const timeValue = new Date(chartLabels[index]).getTime();
+                if (!isNaN(timeValue)) {
+                    fitter.add(timeValue, data);
+                }
+            }
+        } else { 
+            // Data is an array of numbers (or other non-object types).
+            // The 'data' variable itself is the y-value, and 'index' is the x-value.
+            // We still need to check for null/NaN here because 'data' (the y-value) could be null/NaN
+            // even if the entry 'data' (the point/container) wasn't null in the initial check.
+            // This applies if dataset.data = [1, 2, null, 4].
+            if (data != null && !isNaN(data)) {
+                 fitter.add(index, data);
+            }
+        }
+    });
+};
+
+/**
  * Adds a trendline (fitter) to the dataset on the chart and optionally labels it with trend value.
  * @param {Object} datasetMeta - Metadata about the dataset.
  * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
@@ -56,8 +128,8 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
 
     let fitter = isExponential ? new ExponentialFitter() : new LineFitter();
     
-    // --- Data Point Collection and Validation for LineFitter ---
-
+    // --- Data Point Collection and Validation ---
+    
     // Sanitize trendoffset: if its absolute value is too large, reset to 0.
     // This prevents errors if offset is out of bounds of the dataset length.
     if (Math.abs(trendoffset) >= dataset.data.length) trendoffset = 0;
@@ -89,65 +161,10 @@ export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale) => {
     
     // Determine data structure type (object {x,y} or array of numbers) based on the first valid data point.
     // This informs how `xAxisKey` and `yAxisKey` are used or if `index` is used for x-values.
-    let xy = effectiveFirstIndex < dataset.data.length && typeof dataset.data[effectiveFirstIndex] === 'object';
+    const xy = effectiveFirstIndex < dataset.data.length && typeof dataset.data[effectiveFirstIndex] === 'object';
 
-    // Iterate over dataset to collect points for the LineFitter.
-    dataset.data.forEach((data, index) => {
-        // Skip any data point that is null or undefined directly. This is a general guard.
-        if (data == null) return; 
-        
-        // Apply trendoffset logic for including/excluding points:
-        // 1. Positive offset: Skip data points if their index is before the `effectiveFirstIndex`.
-        //    `effectiveFirstIndex` already accounts for the offset and initial nulls.
-        if (trendoffset > 0 && index < effectiveFirstIndex) return;
-        // 2. Negative offset: Skip data points if their index is at or after the calculated end point.
-        //    `dataset.data.length + trendoffset` marks the first index of the points to be excluded from the end.
-        //    For example, if length is 10 and offset is -2, points from index 8 onwards are skipped.
-        if (trendoffset < 0 && index >= dataset.data.length + trendoffset) return;
-
-        // Process data based on scale type and data structure.
-        if (['time', 'timeseries'].includes(xScale.options.type) && xy) {
-            // For time-based scales with object data, convert x to a numerical timestamp; ensure y is a valid number.
-            let x = data[xAxisKey] != null ? data[xAxisKey] : data.t; // `data.t` is a Chart.js internal fallback for time data.
-            const yValue = data[yAxisKey];
-
-            // Both x and y must be valid for the point to be included.
-            if (x != null && x !== undefined && yValue != null && !isNaN(yValue)) {
-                fitter.add(new Date(x).getTime(), yValue);
-            }
-            // If x or yValue is invalid, the point is skipped.
-        } else if (xy) { // Data is identified as array of objects {x,y}.
-            const xVal = data[xAxisKey];
-            const yVal = data[yAxisKey];
-
-            const xIsValid = xVal != null && !isNaN(xVal);
-            const yIsValid = yVal != null && !isNaN(yVal);
-
-            // Both xVal and yVal must be valid numbers to include the point.
-            if (xIsValid && yIsValid) {
-                fitter.add(xVal, yVal);
-            }
-            // If either xVal or yVal is invalid, the point is skipped. No fallback to using index.
-        } else if (['time', 'timeseries'].includes(xScale.options.type) && !xy) {
-            // For time-based scales with array of numbers, get the x-value from the chart labels
-            const chartLabels = datasetMeta.controller.chart.data.labels;
-            if (chartLabels && chartLabels[index] && data != null && !isNaN(data)) {
-                const timeValue = new Date(chartLabels[index]).getTime();
-                if (!isNaN(timeValue)) {
-                    fitter.add(timeValue, data);
-                }
-            }
-        } else { 
-            // Data is an array of numbers (or other non-object types).
-            // The 'data' variable itself is the y-value, and 'index' is the x-value.
-            // We still need to check for null/NaN here because 'data' (the y-value) could be null/NaN
-            // even if the entry 'data' (the point/container) wasn't null in the initial check.
-            // This applies if dataset.data = [1, 2, null, 4].
-            if (data != null && !isNaN(data)) {
-                 fitter.add(index, data);
-            }
-        }
-    });
+    const chartLabels = datasetMeta.controller.chart.data.labels;
+    collectDataPoints(fitter, dataset, trendoffset, effectiveFirstIndex, xy, xScale, xAxisKey, yAxisKey, chartLabels);
 
     // --- Trendline Coordinate Calculation ---
     // Ensure there are enough points to form a trendline.
