@@ -1,13 +1,15 @@
 import { pluginTrendlineLinear } from './core/plugin.js';
 
-// If we're in the browser and have access to the global Chart obj, register plugin automatically
-if (typeof window !== 'undefined' && window.Chart) {
-    if (window.Chart.hasOwnProperty('register')) {
-        window.Chart.register(pluginTrendlineLinear);
-    } else {
-        window.Chart.plugins.register(pluginTrendlineLinear);
+// Auto-register plugin when Chart.js is available in the browser
+if (typeof window !== 'undefined') {
+    const Chart = window.Chart;
+    if (Chart) {
+        if (typeof Chart.register === 'function') {
+            Chart.register(pluginTrendlineLinear);
+        } else {
+            Chart.plugins.register(pluginTrendlineLinear);
+        }
     }
 }
 
-// Export the plugin
 export default pluginTrendlineLinear; 
