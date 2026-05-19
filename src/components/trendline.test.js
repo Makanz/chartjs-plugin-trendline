@@ -1,4 +1,4 @@
-import { addFitter, collectDataPoints } from './trendline.js';
+import { addFitter, collectDataPoints, calculateProjectedCoordinates } from './trendline.js';
 import 'jest-canvas-mock';
 
 import { LineFitter } from '../utils/lineFitter.js';
@@ -918,5 +918,211 @@ describe('addFitter - Exponential Trendlines', () => {
         expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dashed');
         expect(drawingUtils.drawTrendline).toHaveBeenCalled();
         expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled();
+    });
+});
+
+describe('calculateProjectedCoordinates', () => {
+    const mockXScale = {
+        getValueForPixel: jest.fn(p => 10 + p * 2),  // linear mock: pixel -> value
+        getPixelForValue: jest.fn(v => (v - 10) / 2), // inverse
+    };
+    const mockYScale = {
+        getValueForPixel: jest.fn(p => 50 - p * 3),  // linear mock: pixel -> value
+        getPixelForValue: jest.fn(v => (50 - v) / 3), // inverse
+    };
+    const chartArea = { top: 0, bottom: 100, left: 0, right: 50 };
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    describe('non-projection mode (trendlineConfig.projection = false)', () => {
+        test('returns pixel coordinates from fitter.minx/maxx using fitter.f()', () => {
+            const fitter = {
+                minx: 10,
+                maxx: 30,
+                f: jest.fn(x => x * 2 + 5), // f(10)=25, f(30)=65
+            };
+            const result = calculateProjectedCoordinates(
+                fitter, false, { projection: false },
+                mockXScale, mockYScale, chartArea
+            );
+            expect(fitter.f).toHaveBeenCalledWith(10);
+            expect(fitter.f).toHaveBeenCalledWith(30);
+            expect(mockXScale.getPixelForValue).toHaveBeenCalledWith(10);
+            expect(mockXScale.getPixelForValue).toHaveBeenCalledWith(30);
+            expect(mockYScale.getPixelForValue).toHaveBeenCalledWith(25);
+            expect(mockYScale.getPixelForValue).toHaveBeenCalledWith(65);
+            expect(result.x1_px).toBeCloseTo(0);
+            expect(result.y1_px).toBeCloseTo(8.333, 3);
+            expect(result.x2_px).toBeCloseTo(10);
+            expect(result.y2_px).toBeCloseTo(-5);
+        });
+
+        test('calls fitter.f() and x/y scale pixel conversions', () => {
+            const fitter = {
+                minx: 5,
+                maxx: 15,
+                f: jest.fn(x => 100 - x),
+            };
+            calculateProjectedCoordinates(
+                fitter, true, { projection: false },
+                mockXScale, mockYScale, chartArea
+            );
+            expect(fitter.f).toHaveBeenCalledTimes(2);
+            expect(fitter.f).toHaveBeenCalledWith(5);
+            expect(fitter.f).toHaveBeenCalledWith(15);
+            expect(mockXScale.getPixelForValue).toHaveBeenCalledTimes(2);
+            expect(mockYScale.getPixelForValue).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('projection mode (trendlineConfig.projection = true)', () => {
+        describe('exponential', () => {
+            test('generates points from chartArea edges using xScale.getValueForPixel and fitter.f()', () => {
+                const fitter = {
+                    f: jest.fn(x => 20 + x * 0.1), // f(10)=21, f(110)=31 — both within y bounds [-250, 50]
+                };
+                const result = calculateProjectedCoordinates(
+                    fitter, true, { projection: true },
+                    mockXScale, mockYScale, chartArea
+                );
+                // chart area: left=0 → x=10, right=50 → x=110
+                expect(mockXScale.getValueForPixel).toHaveBeenCalledWith(0);
+                expect(mockXScale.getValueForPixel).toHaveBeenCalledWith(50);
+                expect(fitter.f).toHaveBeenCalledWith(10);  // value at left
+                expect(fitter.f).toHaveBeenCalledWith(110); // value at right
+                // result should be valid pixel coords
+                expect(result.x1_px).toBeDefined();
+                expect(result.y1_px).toBeDefined();
+                expect(result.x2_px).toBeDefined();
+                expect(result.y2_px).toBeDefined();
+                expect(isFinite(result.x1_px)).toBe(true);
+                expect(isFinite(result.y1_px)).toBe(true);
+            });
+
+            test('does not call fitter.slope() or fitter.intercept()', () => {
+                const fitter = {
+                    f: jest.fn(() => 42),
+                };
+                calculateProjectedCoordinates(
+                    fitter, true, { projection: true },
+                    mockXScale, mockYScale, chartArea
+                );
+                // No slope/intercept for exponential
+                expect(fitter.slope).toBeUndefined();
+                expect(fitter.intercept).toBeUndefined();
+            });
+        });
+
+        describe('linear with positive slope', () => {
+            test('calculates coordinates using slope/intercept intersection with chart area', () => {
+                const fitter = {
+                    slope: jest.fn(() => 2),
+                    intercept: jest.fn(() => 10),
+                    f: jest.fn(x => 2 * x + 10),
+                };
+                const result = calculateProjectedCoordinates(
+                    fitter, false, { projection: true },
+                    mockXScale, mockYScale, chartArea
+                );
+                // slope=2, intercept=10
+                // chartArea top=0 → val_y = 50, x_at_top = (50-10)/2 = 20
+                // chartArea bottom=100 → val_y = -250? getValueForPixel(100)=50-300=-250? Nej...
+                // yScale.getValueForPixel(0) = (50-0)/3 = 16.667
+                // yScale.getValueForPixel(100) = (50-100)/3 = -16.667
+                // Wait, let me recalculate...
+                // getValueForPixel(p) = 50 - p*3
+                // top=0 → val_y_top = 50
+                // bottom=100 → val_y_bottom = 50-300 = -250
+                // x_at_top = (50-10)/2 = 20
+                // x_at_bottom = (-250-10)/2 = -130
+                // Also fits at chartArea left/right edges via fitter.f
+                // f(10) = 30, f(110) = 230 (these are left/right)
+                // Then dedup + filter...
+                expect(fitter.slope).toHaveBeenCalled();
+                expect(fitter.intercept).toHaveBeenCalled();
+                expect(fitter.f).toHaveBeenCalled();
+                expect(isFinite(result.x1_px)).toBe(true);
+                expect(isFinite(result.y1_px)).toBe(true);
+                expect(isFinite(result.x2_px)).toBe(true);
+                expect(isFinite(result.y2_px)).toBe(true);
+            });
+        });
+
+        describe('linear with zero slope (horizontal)', () => {
+            test('uses intercept for y-coordinate with chartArea edges for x', () => {
+                const fitter = {
+                    slope: jest.fn(() => 0),
+                    intercept: jest.fn(() => 25),
+                    f: jest.fn(x => 25), // f(10)=25, f(110)=25
+                };
+                const result = calculateProjectedCoordinates(
+                    fitter, false, { projection: true },
+                    mockXScale, mockYScale, chartArea
+                );
+                // slope=0 -> enters the else branch (horizontal line)
+                // points: {x: 10, y: 25} and {x: 110, y: 25}
+                // Then also fitter.f(10)=25, fitter.f(110)=25 via the second push
+                // After dedup: two unique points (10,25) and (110,25) sorted by x
+                expect(fitter.slope).toHaveBeenCalled();
+                expect(fitter.intercept).toHaveBeenCalled();
+                expect(isFinite(result.x1_px)).toBe(true);
+                expect(isFinite(result.y1_px)).toBe(true);
+            });
+        });
+
+        describe('linear with negative slope', () => {
+            test('handles negative slope correctly', () => {
+                const fitter = {
+                    slope: jest.fn(() => -0.5),
+                    intercept: jest.fn(() => 30),
+                    f: jest.fn(x => -0.5 * x + 30),
+                };
+                const result = calculateProjectedCoordinates(
+                    fitter, false, { projection: true },
+                    mockXScale, mockYScale, chartArea
+                );
+                // slope=-0.5 -> |slope| > 1e-6, enters slope/intercept branch
+                // val_y_top=50, x_at_top=(50-30)/(-0.5) = -40
+                // val_y_bottom=-250, x_at_bottom=(-250-30)/(-0.5) = 560
+                // fitter.f(10)=25, fitter.f(110)= -25
+                // filter: x between 10 and 110, y between... 
+                // actualChartMinY = min(50, -250) = -250
+                // actualChartMaxY = max(50, -250) = 50
+                // So valid points: x between 10 and 110, y between -250 and 50
+                // (-40, 50) -> x=-40 < 10 -> filtered out
+                // (560, -250) -> x=560 > 110 -> filtered out
+                // (10, 25) -> valid
+                // (110, -25) -> valid
+                // After dedup: 2 valid points
+                expect(fitter.slope).toHaveBeenCalled();
+                expect(fitter.intercept).toHaveBeenCalled();
+                expect(isFinite(result.x1_px)).toBe(true);
+                expect(isFinite(result.y1_px)).toBe(true);
+                expect(isFinite(result.x2_px)).toBe(true);
+                expect(isFinite(result.y2_px)).toBe(true);
+            });
+        });
+
+        describe('when not enough valid points', () => {
+            test('returns NaN for all coordinates when fitter.f() returns Infinity', () => {
+                const fitter = {
+                    f: jest.fn(() => Infinity),
+                };
+                const result = calculateProjectedCoordinates(
+                    fitter, true, { projection: true },
+                    mockXScale, mockYScale, chartArea
+                );
+                // Exponential mode: fitter.f(10)=Infinity, fitter.f(110)=Infinity
+                // points: {x:10, y:Infinity}, {x:110, y:Infinity}
+                // filter: isFinite(p.y)=false -> both filtered out
+                // validPoints.length=0 < 2 -> else branch
+                expect(isNaN(result.x1_px)).toBe(true);
+                expect(isNaN(result.y1_px)).toBe(true);
+                expect(isNaN(result.x2_px)).toBe(true);
+                expect(isNaN(result.y2_px)).toBe(true);
+            });
+        });
     });
 });
