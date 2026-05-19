@@ -1,22 +1,19 @@
+import { BaseFitter } from './baseFitter.js';
+
 /**
  * A class that fits an exponential curve to a series of points using least squares.
  * Fits y = a * e^(b*x) by transforming to ln(y) = ln(a) + b*x
  */
-export class ExponentialFitter {
+export class ExponentialFitter extends BaseFitter {
     constructor() {
-        this.count = 0;
-        this.sumx = 0;
+        super();
         this.sumlny = 0;
-        this.sumx2 = 0;
         this.sumxlny = 0;
-        this.minx = Number.MAX_VALUE;
-        this.maxx = Number.MIN_VALUE;
         this.hasValidData = true;
         this.dataPoints = []; // Store data points for correlation calculation
         this._cachedGrowthRate = null;
         this._cachedCoefficient = null;
         this._cachedCorrelation = null;
-        this._cacheValid = false;
     }
 
     /**
@@ -36,15 +33,10 @@ export class ExponentialFitter {
             return;
         }
 
-        this.sumx += x;
+        super.add(x);
         this.sumlny += lny;
-        this.sumx2 += x * x;
         this.sumxlny += x * lny;
-        if (x < this.minx) this.minx = x;
-        if (x > this.maxx) this.maxx = x;
         this.dataPoints.push({x, y, lny}); // Store actual data points
-        this.count++;
-        this._cacheValid = false;
     }
 
     /**
