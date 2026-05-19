@@ -4,13 +4,13 @@ This repository contains a Chart.js plugin that adds linear trendline support to
 
 ## Development Commands
 
-- `pnpm run build` - Build the minified plugin using webpack
+- `pnpm run build` - Build all output formats using rollup
 - `pnpm test` - Run Jest tests for all components
 
 ## Project Structure
 
 - Root:
-  - `package.json`, `webpack.config.js`, `example/*.html`
+  - `package.json`, `rollup.config.js`, `example/*.html`
 - Source (`src/`):
   - `index.js` - Entry point; auto-registers plugin globally and exports for manual registration
   - `core/plugin.js` - Main plugin lifecycle integration (`afterDatasetsDraw`, `beforeInit`)
