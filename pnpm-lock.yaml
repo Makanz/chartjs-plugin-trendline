@@ -22,19 +22,19 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(rollup@4.60.4)
       babel-jest:
-        specifier: ^30.2.0
+        specifier: ^30.4.1
         version: 30.4.1(@babel/core@7.29.0)
       jest:
-        specifier: ^30.2.0
+        specifier: ^30.4.2
         version: 30.4.2(@types/node@25.8.0)
       jest-canvas-mock:
         specifier: ^2.5.2
         version: 2.5.2
       jest-environment-jsdom:
-        specifier: ^30.2.0
+        specifier: ^30.4.1
         version: 30.4.1
       rollup:
-        specifier: ^4.59.0
+        specifier: ^4.60.4
         version: 4.60.4
 
 packages:
