@@ -2,6 +2,33 @@ import { addFitter } from '../components/trendline.js';
 import { getScales } from '../utils/drawing.js';
 import { applyCanvasAccessibility } from '../utils/accessibility.js';
 
+/**
+ * Creates a legend item object from a dataset's trendline configuration.
+ * Returns null when no legend item should be added.
+ * @param {object} dataset - The chart dataset
+ * @param {object} [trendlineConfig] - The trendline config (trendlineLinear or trendlineExponential)
+ * @returns {object|null} Legend item object or null
+ */
+function createLegendItemFromTrendline(dataset, trendlineConfig) {
+    if (!trendlineConfig) return null;
+
+    const legendConfig = trendlineConfig.legend;
+    if (!legendConfig || legendConfig.display === false) return null;
+
+    return {
+        text: legendConfig.text || dataset.label || 'Trendline',
+        strokeStyle:
+            legendConfig.strokeStyle ||
+            legendConfig.color ||
+            dataset.borderColor ||
+            'rgba(169,169,169, .6)',
+        fillStyle: legendConfig.fillStyle || 'transparent',
+        lineCap: legendConfig.lineCap || 'butt',
+        lineDash: legendConfig.lineDash || [],
+        lineWidth: legendConfig.lineWidth ?? legendConfig.width ?? 1,
+    };
+}
+
 export const pluginTrendlineLinear = {
     id: 'chartjs-plugin-trendline',
 
@@ -49,39 +76,28 @@ export const pluginTrendlineLinear = {
 
     beforeInit: (chartInstance) => {
         const datasets = chartInstance.data.datasets;
-
-        datasets.forEach((dataset) => {
+        const hasLegendConfig = datasets.some((dataset) => {
             const trendlineConfig = dataset.trendlineLinear || dataset.trendlineExponential;
-            if (trendlineConfig && (trendlineConfig.label || trendlineConfig.legend)) {
-                // Access chartInstance to update legend labels
-                const originalGenerateLabels =
-                    chartInstance.legend.options.labels.generateLabels;
-
-                chartInstance.legend.options.labels.generateLabels = function (
-                    chart
-                ) {
-                    const defaultLabels = originalGenerateLabels(chart);
-
-                    const legendConfig = trendlineConfig.legend;
-
-                    // Display the legend if it's populated and not set to hidden
-                    if (legendConfig && legendConfig.display !== false) {
-                        defaultLabels.push({
-                            text: legendConfig.text || dataset.label || 'Trendline',
-                            strokeStyle:
-                                legendConfig.strokeStyle ||
-                                legendConfig.color ||
-                                dataset.borderColor ||
-                                'rgba(169,169,169, .6)',
-                            fillStyle: legendConfig.fillStyle || 'transparent',
-                            lineCap: legendConfig.lineCap || 'butt',
-                            lineDash: legendConfig.lineDash || [],
-                            lineWidth: legendConfig.lineWidth ?? legendConfig.width ?? 1,
-                        });
-                    }
-                    return defaultLabels;
-                };
-            }
+            return createLegendItemFromTrendline(dataset, trendlineConfig) !== null;
         });
+
+        if (!hasLegendConfig) return;
+
+        const originalGenerateLabels =
+            chartInstance.legend.options.labels.generateLabels;
+
+        chartInstance.legend.options.labels.generateLabels = function (chart) {
+            const defaultLabels = originalGenerateLabels(chart);
+
+            chart.data.datasets.forEach((dataset) => {
+                const trendlineConfig = dataset.trendlineLinear || dataset.trendlineExponential;
+                const item = createLegendItemFromTrendline(dataset, trendlineConfig);
+                if (item) {
+                    defaultLabels.push(item);
+                }
+            });
+
+            return defaultLabels;
+        };
     },
 };
