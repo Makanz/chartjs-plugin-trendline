@@ -1,4 +1,4 @@
-import { addFitter } from './trendline.js';
+import { addFitter, collectDataPoints } from './trendline.js';
 import 'jest-canvas-mock';
 
 import { LineFitter } from '../utils/lineFitter.js';
@@ -486,6 +486,142 @@ describe('addFitter', () => {
     });
 });
 
+describe('collectDataPoints', () => {
+    let mockXScale;
+    let mockDataset;
+
+    beforeEach(() => {
+        mockXScale = {
+            options: { type: 'linear' },
+        };
+        mockDataset = {
+            data: [
+                { x: 10, y: 30 },
+                { x: 20, y: 50 },
+                { x: 30, y: 70 },
+            ],
+        };
+    });
+
+    test('adds all valid object data points to fitter', () => {
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, 0, 0, true, mockXScale, 'x', 'y', []);
+        expect(fitter.count).toBe(3);
+        expect(fitter.sumx).toBe(60);
+        expect(fitter.sumy).toBe(150);
+    });
+
+    test('skips null and undefined data points', () => {
+        mockDataset.data = [
+            { x: 10, y: 30 },
+            null,
+            { x: 20, y: 50 },
+            undefined,
+            { x: 30, y: 70 },
+        ];
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, 0, 0, true, mockXScale, 'x', 'y', []);
+        expect(fitter.count).toBe(3);
+        expect(fitter.sumx).toBe(60);
+        expect(fitter.sumy).toBe(150);
+    });
+
+    test('positive trendoffset skips initial data points', () => {
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, 1, 1, true, mockXScale, 'x', 'y', []);
+        expect(fitter.count).toBe(2);
+        expect(fitter.sumx).toBe(50);
+        expect(fitter.sumy).toBe(120);
+    });
+
+    test('negative trendoffset skips trailing data points', () => {
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, -1, 0, true, mockXScale, 'x', 'y', []);
+        expect(fitter.count).toBe(2);
+        expect(fitter.sumx).toBe(30);
+        expect(fitter.sumy).toBe(80);
+    });
+
+    test('handles array of numbers (non-object data)', () => {
+        mockDataset.data = [10, 20, 30, 40, 50];
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, 0, 0, false, mockXScale, 'x', 'y', []);
+        expect(fitter.count).toBe(5);
+        // x-values are indices: 0,1,2,3,4
+        expect(fitter.sumx).toBe(10);
+        expect(fitter.sumy).toBe(150);
+    });
+
+    test('skips NaN values in array data', () => {
+        mockDataset.data = [10, null, 30, undefined, 50];
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, 0, 0, false, mockXScale, 'x', 'y', []);
+        expect(fitter.count).toBe(3);
+        expect(fitter.sumx).toBe(6); // indices 0, 2, 4
+        expect(fitter.sumy).toBe(90);
+    });
+
+    test('handles time scale with object data', () => {
+        mockXScale.options.type = 'time';
+        const date1 = new Date('2023-01-01T00:00:00.000Z');
+        const date2 = new Date('2023-01-02T00:00:00.000Z');
+        mockDataset.data = [
+            { x: date1.toISOString(), y: 10 },
+            { x: date2.toISOString(), y: 20 },
+        ];
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, 0, 0, true, mockXScale, 'x', 'y', []);
+        expect(fitter.count).toBe(2);
+        expect(fitter.sumx).toBe(date1.getTime() + date2.getTime());
+        expect(fitter.sumy).toBe(30);
+    });
+
+    test('handles time scale with array data using chart labels', () => {
+        mockXScale.options.type = 'timeseries';
+        mockDataset.data = [75, 64, 52];
+        const chartLabels = [
+            '2025-03-01T00:00:00',
+            '2025-03-02T00:00:00',
+            '2025-03-03T00:00:00',
+        ];
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, 0, 0, false, mockXScale, 'x', 'y', chartLabels);
+        expect(fitter.count).toBe(3);
+        expect(fitter.sumx).toBe(
+            new Date('2025-03-01T00:00:00').getTime() +
+            new Date('2025-03-02T00:00:00').getTime() +
+            new Date('2025-03-03T00:00:00').getTime()
+        );
+        expect(fitter.sumy).toBe(191);
+    });
+
+    test('skips points with missing x or y in object data', () => {
+        mockDataset.data = [
+            { x: 10, y: 30 },
+            { x: 20 },       // missing y
+            { y: 70 },       // missing x
+            { value: 90 },   // wrong key
+            { x: 40, y: 80 },
+        ];
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, 0, 0, true, mockXScale, 'x', 'y', []);
+        expect(fitter.count).toBe(2);
+        expect(fitter.sumx).toBe(50);
+        expect(fitter.sumy).toBe(110);
+    });
+
+    test('uses custom xAxisKey and yAxisKey', () => {
+        mockDataset.data = [
+            { customX: 5, customY: 15 },
+            { customX: 10, customY: 25 },
+        ];
+        const fitter = new (jest.requireActual("../utils/lineFitter").LineFitter)();
+        collectDataPoints(fitter, mockDataset, 0, 0, true, mockXScale, 'customX', 'customY', []);
+        expect(fitter.count).toBe(2);
+        expect(fitter.sumx).toBe(15);
+        expect(fitter.sumy).toBe(40);
+    });
+});
 describe('addFitter - Exponential Trendlines', () => {
     let mockCtx;
     let mockDatasetMeta;
