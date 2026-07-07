@@ -1,6 +1,6 @@
 {
   "name": "chartjs-plugin-trendline",
-  "version": "3.2.5",
+  "version": "3.2.6",
   "description": "Trendline for Chart.js",
   "type": "module",
   "main": "./dist/chartjs-plugin-trendline.cjs",
@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/Makanz/chartjs-plugin-trendline#readme",
   "devDependencies": {
-    "@babel/core": "^7.29.0",
+    "@babel/core": "^7.29.6",
     "@babel/preset-env": "^7.29.5",
     "@rollup/plugin-terser": "^1.0.0",
     "babel-jest": "^30.4.1",
