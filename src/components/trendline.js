@@ -108,7 +108,15 @@ export const calculateProjectedCoordinates = (fitter, isExponential, trendlineCo
             const slope = fitter.slope();
             const intercept = fitter.intercept();
 
-            if (Math.abs(slope) > 1e-6) {
+            // Use a relative threshold for near-zero slope detection.
+            // With time-scale axes, x-values are large timestamps (~1.7e12 ms),
+            // so even visually significant slopes have absolute values well below
+            // 1e-6. Compare slope * x-range against the y-range instead.
+            const xRange = fitter.maxx - fitter.minx;
+            const yRange = (yScaleToUse.max - yScaleToUse.min) || 1;
+            const isNearZeroSlope = Math.abs(slope * xRange) < Math.abs(yRange) * 1e-6;
+
+            if (!isNearZeroSlope) {
                 const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
                 const x_at_top = (val_y_top - intercept) / slope;
                 points.push({ x: x_at_top, y: val_y_top });
