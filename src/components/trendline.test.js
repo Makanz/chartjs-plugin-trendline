@@ -1124,5 +1124,112 @@ describe('calculateProjectedCoordinates', () => {
                 expect(isNaN(result.y2_px)).toBe(true);
             });
         });
+
+        // Regression tests for issue #147: near-zero slope detection with time-scale axes.
+        // With time-scale x-values (~1.7e12 ms), even visually significant slopes have
+        // absolute values well below 1e-6. The old absolute threshold incorrectly treated
+        // them as horizontal lines, producing intercept-based points far outside the y-axis
+        // range and causing the trendline to not render.
+        describe('issue #147: relative near-zero slope threshold with time-scale axes', () => {
+            // Helper to build a time-scale mock spanning from X_MIN to X_MAX across 700px.
+            const makeXScale = (xMin, xMax) => {
+                const pxPerMs = (xMax - xMin) / 700;
+                return {
+                    getValueForPixel: jest.fn(p => xMin + p * pxPerMs),
+                    getPixelForValue: jest.fn(v => (v - xMin) / pxPerMs),
+                };
+            };
+            // Helper to build a y-scale mock from min to max across 400px.
+            const makeYScale = (yMin, yMax) => {
+                const valPerPx = (yMax - yMin) / 400;
+                return {
+                    getValueForPixel: jest.fn(p => yMax - p * valPerPx),
+                    getPixelForValue: jest.fn(v => (yMax - v) / valPerPx),
+                    min: yMin,
+                    max: yMax,
+                };
+            };
+            const tsChartArea = { top: 0, bottom: 400, left: 0, right: 700 };
+
+            beforeEach(() => {
+                jest.clearAllMocks();
+            });
+
+            test('DS1: small slope renders when x-axis is expanded by another dataset', () => {
+                // DS1 from issue #147: slope=-5.4e-11, intercept=109.27, y-axis [0, 20].
+                // DS1's own data spans 2024-06 to 2026-05, but when DS2 (starting 2022-05)
+                // is visible, the x-axis expands leftward. f(x_left) at 2022 exceeds y_max=20,
+                // and the old intercept fallback (109.27) is always out of range.
+                // With the old code: only 1 valid point -> trendline not rendered.
+                // With the fix: y-axis intersection points provide 2 valid points.
+                const xMin = 1653524400000; // 2022-05-26 (expanded by DS2)
+                const xMax = 1748491200000; // 2026-05-29
+                const fitter = {
+                    slope: jest.fn(() => -5.4e-11),
+                    intercept: jest.fn(() => 109.27),
+                    minx: 1718022000000, // DS1's actual first point
+                    maxx: 1748491200000,
+                    f: jest.fn(x => -5.4e-11 * x + 109.27),
+                };
+                const result = calculateProjectedCoordinates(
+                    fitter, false, { projection: true },
+                    makeXScale(xMin, xMax), makeYScale(0, 18), tsChartArea
+                );
+                expect(fitter.slope).toHaveBeenCalled();
+                expect(isFinite(result.x1_px)).toBe(true);
+                expect(isFinite(result.y1_px)).toBe(true);
+                expect(isFinite(result.x2_px)).toBe(true);
+                expect(isFinite(result.y2_px)).toBe(true);
+            });
+
+            test('DS3: trendline renders with small y-range [0, 1] and narrow x-range', () => {
+                // DS3 from issue #147: slope=-8.02e-12, intercept=14.234, y-axis [0, 1].
+                // DS3's data spans 2024-06-10 to 2026-05-29.
+                // Old code: abs(slope)=8e-12 < 1e-6 -> near-zero branch -> intercept=14.234
+                // is way outside [0,1], and f(x_max)≈-0.04 is below 0 -> only 1 valid point
+                // -> trendline never renders (even when DS3 is the only dataset).
+                // Fix: slope*xRange ≈ -2.4, not negligible vs yRange=1 -> uses intersection.
+                const xMin = 1718022000000; // 2024-06-10 (DS3's own range)
+                const xMax = 1780044540000; // 2026-05-29
+                const fitter = {
+                    slope: jest.fn(() => -8.02e-12),
+                    intercept: jest.fn(() => 14.234),
+                    minx: xMin,
+                    maxx: xMax,
+                    f: jest.fn(x => -8.02e-12 * x + 14.234),
+                };
+                const result = calculateProjectedCoordinates(
+                    fitter, false, { projection: true },
+                    makeXScale(xMin, xMax), makeYScale(0, 1), tsChartArea
+                );
+                expect(fitter.slope).toHaveBeenCalled();
+                expect(isFinite(result.x1_px)).toBe(true);
+                expect(isFinite(result.y1_px)).toBe(true);
+                expect(isFinite(result.x2_px)).toBe(true);
+                expect(isFinite(result.y2_px)).toBe(true);
+            });
+
+            test('genuinely flat data (slope ≈ 0) still uses horizontal shortcut', () => {
+                // slope so small that slope * xRange is negligible vs yRange
+                const xMin = 1718022000000;
+                const xMax = 1748491200000;
+                const fitter = {
+                    slope: jest.fn(() => 1e-20),
+                    intercept: jest.fn(() => 15),
+                    minx: xMin,
+                    maxx: xMax,
+                    f: jest.fn(() => 15),
+                };
+                const result = calculateProjectedCoordinates(
+                    fitter, false, { projection: true },
+                    makeXScale(xMin, xMax), makeYScale(0, 20), tsChartArea
+                );
+                // Horizontal line at y=15, within [0,20] -> should render
+                expect(isFinite(result.x1_px)).toBe(true);
+                expect(isFinite(result.y1_px)).toBe(true);
+                expect(isFinite(result.x2_px)).toBe(true);
+                expect(isFinite(result.y2_px)).toBe(true);
+            });
+        });
     });
 });
