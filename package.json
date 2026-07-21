@@ -1,6 +1,6 @@
 {
   "name": "chartjs-plugin-trendline",
-  "version": "3.2.7",
+  "version": "3.2.8",
   "description": "Trendline for Chart.js",
   "type": "module",
   "main": "./dist/chartjs-plugin-trendline.cjs",
@@ -37,10 +37,14 @@
     "jest-environment-jsdom": "^30.4.1",
     "rollup": "^4.60.4"
   },
+  "overrides": {
+    "ws": ">=8.21.0"
+  },
   "pnpm": {
     "overrides": {
       "js-yaml": ">=3.15.0",
-      "serialize-javascript": "^7.0.3"
+      "serialize-javascript": "^7.0.3",
+      "ws": ">=8.21.0"
     }
   }
 }
