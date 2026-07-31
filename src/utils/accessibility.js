@@ -83,12 +83,19 @@ export function applyCanvasAccessibility(chartInstance) {
     // Generate and apply description
     const description = generateChartTrendlineDescription(chartInstance);
     if (description) {
-        const existingLabel = canvas.getAttribute('aria-label') || '';
-        if (existingLabel) {
-            // Append to existing aria-label if chart already has one
-            canvas.setAttribute('aria-label', `${existingLabel}. ${description}`);
-        } else {
-            canvas.setAttribute('aria-label', description);
+        // Preserve the original user-provided aria-label so repeated calls
+        // (afterInit + afterUpdate) don't accumulate duplicate descriptions.
+        // See: https://github.com/Makanz/chartjs-plugin-trendline/issues/152
+        if (!canvas.hasAttribute('data-trendline-original-label')) {
+            canvas.setAttribute(
+                'data-trendline-original-label',
+                canvas.getAttribute('aria-label') || ''
+            );
         }
+        const originalLabel = canvas.getAttribute('data-trendline-original-label') || '';
+        canvas.setAttribute(
+            'aria-label',
+            originalLabel ? `${originalLabel}. ${description}` : description
+        );
     }
 }
