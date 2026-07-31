@@ -185,6 +185,26 @@ describe('applyCanvasAccessibility', () => {
         expect(chartInstance.canvas.hasAttribute('aria-label')).toBe(false);
     });
 
+    it('should not duplicate description on repeated calls (afterInit + afterUpdate)', () => {
+        applyCanvasAccessibility(chartInstance);
+        const firstLabel = chartInstance.canvas.getAttribute('aria-label');
+        applyCanvasAccessibility(chartInstance);
+        const secondLabel = chartInstance.canvas.getAttribute('aria-label');
+        expect(secondLabel).toBe(firstLabel);
+    });
+
+    it('should not duplicate description on repeated calls with pre-existing aria-label', () => {
+        chartInstance.canvas.setAttribute('aria-label', 'My Chart');
+        applyCanvasAccessibility(chartInstance);
+        const firstLabel = chartInstance.canvas.getAttribute('aria-label');
+        applyCanvasAccessibility(chartInstance);
+        const secondLabel = chartInstance.canvas.getAttribute('aria-label');
+        expect(secondLabel).toBe(firstLabel);
+        // Ensure original label appears exactly once
+        const matches = secondLabel.match(/My Chart/g);
+        expect(matches).toHaveLength(1);
+    });
+
     it('should do nothing when canvas is absent', () => {
         const withoutCanvas = { data: { datasets: [] } };
         expect(() => applyCanvasAccessibility(withoutCanvas)).not.toThrow();
