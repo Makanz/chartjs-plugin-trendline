@@ -1,5 +1,5 @@
 /*!
- * chartjs-plugin-trendline v3.2.1
+ * chartjs-plugin-trendline v3.2.12
  * https://github.com/Makanz/chartjs-plugin-trendline
  * (c) 2026 Marcus Alsterfjord
  * Released under the MIT license
@@ -11,20 +11,52 @@
 })(this, (function () { 'use strict';
 
     /**
-     * A class that fits a line to a series of points using least squares.
+     * A base class for fitter classes that provides shared state and caching logic.
+     * Handles count tracking, x-value accumulation, and min/max tracking.
      */
-    class LineFitter {
+    class BaseFitter {
         constructor() {
             this.count = 0;
             this.sumx = 0;
-            this.sumy = 0;
             this.sumx2 = 0;
-            this.sumxy = 0;
             this.minx = Number.MAX_VALUE;
             this.maxx = Number.MIN_VALUE;
+            this._cacheValid = false;
+        }
+
+        /**
+         * Adds a point to the fitter. Shared x-accumulation logic.
+         * Subclasses should call super.add(x) and handle y-specific logic.
+         * @param {number} x - The x-coordinate of the point.
+         */
+        add(x) {
+            this.sumx += x;
+            this.sumx2 += x * x;
+            if (x < this.minx) this.minx = x;
+            if (x > this.maxx) this.maxx = x;
+            this.count++;
+            this._cacheValid = false;
+        }
+
+        /**
+         * Returns the scale (magnitude) of the fitted curve.
+         * @returns {number} - The scale value.
+         */
+        scale() {
+            return 0;
+        }
+    }
+
+    /**
+     * A class that fits a line to a series of points using least squares.
+     */
+    class LineFitter extends BaseFitter {
+        constructor() {
+            super();
+            this.sumy = 0;
+            this.sumxy = 0;
             this._cachedSlope = null;
             this._cachedIntercept = null;
-            this._cacheValid = false;
         }
 
         /**
@@ -33,14 +65,9 @@
          * @param {number} y - The y-coordinate of the point.
          */
         add(x, y) {
-            this.sumx += x;
+            super.add(x);
             this.sumy += y;
-            this.sumx2 += x * x;
             this.sumxy += x * y;
-            if (x < this.minx) this.minx = x;
-            if (x > this.maxx) this.maxx = x;
-            this.count++;
-            this._cacheValid = false;
         }
 
         /**
@@ -102,21 +129,16 @@
      * A class that fits an exponential curve to a series of points using least squares.
      * Fits y = a * e^(b*x) by transforming to ln(y) = ln(a) + b*x
      */
-    class ExponentialFitter {
+    class ExponentialFitter extends BaseFitter {
         constructor() {
-            this.count = 0;
-            this.sumx = 0;
+            super();
             this.sumlny = 0;
-            this.sumx2 = 0;
             this.sumxlny = 0;
-            this.minx = Number.MAX_VALUE;
-            this.maxx = Number.MIN_VALUE;
             this.hasValidData = true;
             this.dataPoints = []; // Store data points for correlation calculation
             this._cachedGrowthRate = null;
             this._cachedCoefficient = null;
             this._cachedCorrelation = null;
-            this._cacheValid = false;
         }
 
         /**
@@ -136,15 +158,10 @@
                 return;
             }
 
-            this.sumx += x;
+            super.add(x);
             this.sumlny += lny;
-            this.sumx2 += x * x;
             this.sumxlny += x * lny;
-            if (x < this.minx) this.minx = x;
-            if (x > this.maxx) this.maxx = x;
             this.dataPoints.push({x, y, lny}); // Store actual data points
-            this.count++;
-            this._cacheValid = false;
         }
 
         /**
@@ -285,6 +302,25 @@
     };
 
     /**
+     * Validates that all provided named coordinate values are finite numbers.
+     * @param {Object<string, number>} coords - Named coordinate values to validate.
+     * @param {string} label - Label for the warning message (e.g., 'draw trendline').
+     * @returns {boolean} - True if all values are finite, false otherwise.
+     */
+    const validateFiniteCoords = (coords, label) => {
+        for (const value of Object.values(coords)) {
+            if (!isFinite(value)) {
+                console.warn(
+                    `Cannot ${label}: coordinates contain non-finite values`,
+                    coords
+                );
+                return false;
+            }
+        }
+        return true;
+    };
+
+    /**
      * Draws the trendline on the canvas context.
      * @param {Object} params - The trendline parameters.
      * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
@@ -296,14 +332,7 @@
      * @param {string} params.colorMax - The ending color of the trendline gradient.
      */
     const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
-        // Ensure all values are finite numbers
-        if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
-            console.warn(
-                'Cannot draw trendline: coordinates contain non-finite values',
-                { x1, y1, x2, y2 }
-            );
-            return;
-        }
+        if (!validateFiniteCoords({ x1, y1, x2, y2 }, 'draw trendline')) return;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -346,20 +375,7 @@
      * @param {string} fillColor - The color to fill below the trendline.
      */
     const fillBelowTrendline = (ctx, x1, y1, x2, y2, drawBottom, fillColor) => {
-        // Ensure all values are finite numbers
-        if (
-            !isFinite(x1) ||
-            !isFinite(y1) ||
-            !isFinite(x2) ||
-            !isFinite(y2) ||
-            !isFinite(drawBottom)
-        ) {
-            console.warn(
-                'Cannot fill below trendline: coordinates contain non-finite values',
-                { x1, y1, x2, y2, drawBottom }
-            );
-            return;
-        }
+        if (!validateFiniteCoords({ x1, y1, x2, y2, drawBottom }, 'fill below trendline')) return;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -376,30 +392,28 @@
     /**
      * Adds a label to the trendline at the calculated angle.
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-     * @param {string} label - The label text to add.
-     * @param {number} x1 - The starting x-coordinate of the trendline.
-     * @param {number} y1 - The starting y-coordinate of the trendline.
-     * @param {number} x2 - The ending x-coordinate of the trendline.
-     * @param {number} y2 - The ending y-coordinate of the trendline.
-     * @param {number} angle - The angle (in radians) of the trendline.
-     * @param {string} labelColor - The color of the label text.
-     * @param {string} family - The font family for the label text.
-     * @param {number} size - The font size for the label text.
-     * @param {number} offset - The offset of the label from the trendline
+     * @param {Object} options - Configuration options for the label.
+     * @param {string} options.label - The label text to add.
+     * @param {number} options.x1 - The starting x-coordinate of the trendline.
+     * @param {number} options.y1 - The starting y-coordinate of the trendline.
+     * @param {number} options.x2 - The ending x-coordinate of the trendline.
+     * @param {number} options.y2 - The ending y-coordinate of the trendline.
+     * @param {number} options.angle - The angle (in radians) of the trendline.
+     * @param {string} options.labelColor - The color of the label text.
+     * @param {string} options.family - The font family for the label text.
+     * @param {number} options.size - The font size for the label text.
+     * @param {number} options.offset - The offset of the label from the trendline.
      */
-    const addTrendlineLabel = (
-        ctx,
-        label,
-        x1,
-        y1,
-        x2,
-        y2,
-        angle,
-        labelColor,
-        family,
-        size,
-        offset
-    ) => {
+    const addTrendlineLabel = (ctx, options) => {
+        const {
+            label,
+            x1, y1, x2, y2,
+            angle,
+            labelColor,
+            family,
+            size,
+            offset,
+        } = options;
         // Set the label font and color
         ctx.font = `${size}px ${family}`;
         ctx.fillStyle = labelColor;
@@ -429,6 +443,184 @@
 
         // Restore the canvas state
         ctx.restore();
+    };
+
+    /**
+     * Collects valid data points from a dataset and adds them to the fitter.
+     * Handles null/undefined values, trendoffset logic, time scales, and different
+     * data structures (object {x,y} vs array of numbers).
+     * @param {Object} fitter - The fitter instance (LineFitter or ExponentialFitter).
+     * @param {Object} dataset - The dataset configuration from the chart.
+     * @param {number} trendoffset - Number of data points to skip (positive from start, negative from end).
+     * @param {number} effectiveFirstIndex - The index of the first valid data point.
+     * @param {boolean} xy - Whether the data is structured as objects {x,y}.
+     * @param {Scale} xScale - The x-axis scale object.
+     * @param {string} xAxisKey - Key for x-values in object data.
+     * @param {string} yAxisKey - Key for y-values in object data.
+     * @param {Array} chartLabels - Labels array from chart (for time scales with array data).
+     */
+    const collectDataPoints = (fitter, dataset, trendoffset, effectiveFirstIndex, xy, xScale, xAxisKey, yAxisKey, chartLabels) => {
+        dataset.data.forEach((data, index) => {
+            // Skip any data point that is null or undefined directly. This is a general guard.
+            if (data == null) return; 
+            
+            // Apply trendoffset logic for including/excluding points:
+            // 1. Positive offset: Skip data points if their index is before the `effectiveFirstIndex`.
+            //    `effectiveFirstIndex` already accounts for the offset and initial nulls.
+            if (trendoffset > 0 && index < effectiveFirstIndex) return;
+            // 2. Negative offset: Skip data points if their index is at or after the calculated end point.
+            //    `dataset.data.length + trendoffset` marks the first index of the points to be excluded from the end.
+            //    For example, if length is 10 and offset is -2, points from index 8 onwards are skipped.
+            if (trendoffset < 0 && index >= dataset.data.length + trendoffset) return;
+
+            // Process data based on scale type and data structure.
+            if (['time', 'timeseries'].includes(xScale.options.type) && xy) {
+                // For time-based scales with object data, convert x to a numerical timestamp; ensure y is a valid number.
+                let x = data[xAxisKey] != null ? data[xAxisKey] : data.t; // `data.t` is a Chart.js internal fallback for time data.
+                const yValue = data[yAxisKey];
+
+                // Both x and y must be valid for the point to be included.
+                if (x != null && x !== undefined && yValue != null && !isNaN(yValue)) {
+                    fitter.add(new Date(x).getTime(), yValue);
+                }
+                // If x or yValue is invalid, the point is skipped.
+            } else if (xy) { // Data is identified as array of objects {x,y}.
+                const xVal = data[xAxisKey];
+                const yVal = data[yAxisKey];
+
+                const xIsValid = xVal != null && !isNaN(xVal);
+                const yIsValid = yVal != null && !isNaN(yVal);
+
+                // Both xVal and yVal must be valid numbers to include the point.
+                if (xIsValid && yIsValid) {
+                    fitter.add(xVal, yVal);
+                }
+                // If either xVal or yVal is invalid, the point is skipped. No fallback to using index.
+            } else if (['time', 'timeseries'].includes(xScale.options.type) && !xy) {
+                // For time-based scales with array of numbers, get the x-value from the chart labels
+                if (chartLabels && chartLabels[index] && data != null && !isNaN(data)) {
+                    const timeValue = new Date(chartLabels[index]).getTime();
+                    if (!isNaN(timeValue)) {
+                        fitter.add(timeValue, data);
+                    }
+                }
+            } else { 
+                // Data is an array of numbers (or other non-object types).
+                // The 'data' variable itself is the y-value, and 'index' is the x-value.
+                // We still need to check for null/NaN here because 'data' (the y-value) could be null/NaN
+                // even if the entry 'data' (the point/container) wasn't null in the initial check.
+                // This applies if dataset.data = [1, 2, null, 4].
+                if (data != null && !isNaN(data)) {
+                     fitter.add(index, data);
+                }
+            }
+        });
+    };
+
+    /**
+     * Calculates the pixel coordinates for the trendline, handling both projection and non-projection modes.
+     * Projection mode extends the trendline across the full chart area, while non-projection mode
+     * fits the line exactly to the data range.
+     * @param {Object} fitter - The fitter instance (LineFitter or ExponentialFitter).
+     * @param {boolean} isExponential - Whether the trendline is exponential.
+     * @param {Object} trendlineConfig - The trendline configuration object.
+     * @param {Scale} xScale - The x-axis scale object.
+     * @param {Scale} yScaleToUse - The y-axis scale object to use.
+     * @param {Object} chartArea - The chart area with { left, right, top, bottom } pixel boundaries.
+     * @returns {Object} An object with { x1_px, y1_px, x2_px, y2_px } pixel coordinates.
+     */
+    const calculateProjectedCoordinates = (fitter, isExponential, trendlineConfig, xScale, yScaleToUse, chartArea) => {
+        let x1_px, y1_px, x2_px, y2_px;
+
+        // Determine trendline start/end points based on the 'projection' option.
+        if (trendlineConfig.projection) {
+            let points = [];
+
+            if (isExponential) {
+                // For exponential curves, we generate points across the x-axis range
+                const val_x_left = xScale.getValueForPixel(chartArea.left);
+                const y_at_left = fitter.f(val_x_left);
+                points.push({ x: val_x_left, y: y_at_left });
+
+                const val_x_right = xScale.getValueForPixel(chartArea.right);
+                const y_at_right = fitter.f(val_x_right);
+                points.push({ x: val_x_right, y: y_at_right });
+            } else {
+                // Linear projection logic
+                const slope = fitter.slope();
+                const intercept = fitter.intercept();
+
+                // Use a relative threshold for near-zero slope detection.
+                // With time-scale axes, x-values are large timestamps (~1.7e12 ms),
+                // so even visually significant slopes have absolute values well below
+                // 1e-6. Compare slope * x-range against the y-range instead.
+                const xRange = fitter.maxx - fitter.minx;
+                const yRange = (yScaleToUse.max - yScaleToUse.min) || 1;
+                const isNearZeroSlope = Math.abs(slope * xRange) < Math.abs(yRange) * 1e-6;
+
+                if (!isNearZeroSlope) {
+                    const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
+                    const x_at_top = (val_y_top - intercept) / slope;
+                    points.push({ x: x_at_top, y: val_y_top });
+
+                    const val_y_bottom = yScaleToUse.getValueForPixel(chartArea.bottom);
+                    const x_at_bottom = (val_y_bottom - intercept) / slope;
+                    points.push({ x: x_at_bottom, y: val_y_bottom });
+                } else {
+                    points.push({ x: xScale.getValueForPixel(chartArea.left), y: intercept });
+                    points.push({ x: xScale.getValueForPixel(chartArea.right), y: intercept });
+                }
+
+                const val_x_left = xScale.getValueForPixel(chartArea.left);
+                const y_at_left = fitter.f(val_x_left);
+                points.push({ x: val_x_left, y: y_at_left });
+
+                const val_x_right = xScale.getValueForPixel(chartArea.right);
+                const y_at_right = fitter.f(val_x_right);
+                points.push({ x: val_x_right, y: y_at_right });
+            }
+
+            const chartMinX = xScale.getValueForPixel(chartArea.left);
+            const chartMaxX = xScale.getValueForPixel(chartArea.right);
+
+            const yValsFromPixels = [yScaleToUse.getValueForPixel(chartArea.top), yScaleToUse.getValueForPixel(chartArea.bottom)];
+            const finiteYVals = yValsFromPixels.filter(y => isFinite(y));
+            const actualChartMinY = finiteYVals.length > 0 ? Math.min(...finiteYVals) : -Infinity;
+            const actualChartMaxY = finiteYVals.length > 0 ? Math.max(...finiteYVals) : Infinity;
+
+            let validPoints = points.filter(p =>
+                isFinite(p.x) && isFinite(p.y) &&
+                p.x >= chartMinX && p.x <= chartMaxX && p.y >= actualChartMinY && p.y <= actualChartMaxY
+            );
+
+            validPoints = validPoints.filter((point, index, self) =>
+                index === self.findIndex((t) => (
+                    Math.abs(t.x - point.x) < 1e-4 && Math.abs(t.y - point.y) < 1e-4
+                ))
+            );
+
+            if (validPoints.length >= 2) {
+                validPoints.sort((a, b) => a.x - b.x || a.y - b.y);
+
+                x1_px = xScale.getPixelForValue(validPoints[0].x);
+                y1_px = yScaleToUse.getPixelForValue(validPoints[0].y);
+                x2_px = xScale.getPixelForValue(validPoints[validPoints.length - 1].x);
+                y2_px = yScaleToUse.getPixelForValue(validPoints[validPoints.length - 1].y);
+            } else {
+                x1_px = NaN; y1_px = NaN; x2_px = NaN; y2_px = NaN;
+            }
+
+        } else {
+            const y_at_minx = fitter.f(fitter.minx);
+            const y_at_maxx = fitter.f(fitter.maxx);
+
+            x1_px = xScale.getPixelForValue(fitter.minx);
+            y1_px = yScaleToUse.getPixelForValue(y_at_minx);
+            x2_px = xScale.getPixelForValue(fitter.maxx);
+            y2_px = yScaleToUse.getPixelForValue(y_at_maxx);
+        }
+
+        return { x1_px, y1_px, x2_px, y2_px };
     };
 
     /**
@@ -484,8 +676,8 @@
 
         let fitter = isExponential ? new ExponentialFitter() : new LineFitter();
         
-        // --- Data Point Collection and Validation for LineFitter ---
-
+        // --- Data Point Collection and Validation ---
+        
         // Sanitize trendoffset: if its absolute value is too large, reset to 0.
         // This prevents errors if offset is out of bounds of the dataset length.
         if (Math.abs(trendoffset) >= dataset.data.length) trendoffset = 0;
@@ -517,65 +709,10 @@
         
         // Determine data structure type (object {x,y} or array of numbers) based on the first valid data point.
         // This informs how `xAxisKey` and `yAxisKey` are used or if `index` is used for x-values.
-        let xy = effectiveFirstIndex < dataset.data.length && typeof dataset.data[effectiveFirstIndex] === 'object';
+        const xy = effectiveFirstIndex < dataset.data.length && typeof dataset.data[effectiveFirstIndex] === 'object';
 
-        // Iterate over dataset to collect points for the LineFitter.
-        dataset.data.forEach((data, index) => {
-            // Skip any data point that is null or undefined directly. This is a general guard.
-            if (data == null) return; 
-            
-            // Apply trendoffset logic for including/excluding points:
-            // 1. Positive offset: Skip data points if their index is before the `effectiveFirstIndex`.
-            //    `effectiveFirstIndex` already accounts for the offset and initial nulls.
-            if (trendoffset > 0 && index < effectiveFirstIndex) return;
-            // 2. Negative offset: Skip data points if their index is at or after the calculated end point.
-            //    `dataset.data.length + trendoffset` marks the first index of the points to be excluded from the end.
-            //    For example, if length is 10 and offset is -2, points from index 8 onwards are skipped.
-            if (trendoffset < 0 && index >= dataset.data.length + trendoffset) return;
-
-            // Process data based on scale type and data structure.
-            if (['time', 'timeseries'].includes(xScale.options.type) && xy) {
-                // For time-based scales with object data, convert x to a numerical timestamp; ensure y is a valid number.
-                let x = data[xAxisKey] != null ? data[xAxisKey] : data.t; // `data.t` is a Chart.js internal fallback for time data.
-                const yValue = data[yAxisKey];
-
-                // Both x and y must be valid for the point to be included.
-                if (x != null && x !== undefined && yValue != null && !isNaN(yValue)) {
-                    fitter.add(new Date(x).getTime(), yValue);
-                }
-                // If x or yValue is invalid, the point is skipped.
-            } else if (xy) { // Data is identified as array of objects {x,y}.
-                const xVal = data[xAxisKey];
-                const yVal = data[yAxisKey];
-
-                const xIsValid = xVal != null && !isNaN(xVal);
-                const yIsValid = yVal != null && !isNaN(yVal);
-
-                // Both xVal and yVal must be valid numbers to include the point.
-                if (xIsValid && yIsValid) {
-                    fitter.add(xVal, yVal);
-                }
-                // If either xVal or yVal is invalid, the point is skipped. No fallback to using index.
-            } else if (['time', 'timeseries'].includes(xScale.options.type) && !xy) {
-                // For time-based scales with array of numbers, get the x-value from the chart labels
-                const chartLabels = datasetMeta.controller.chart.data.labels;
-                if (chartLabels && chartLabels[index] && data != null && !isNaN(data)) {
-                    const timeValue = new Date(chartLabels[index]).getTime();
-                    if (!isNaN(timeValue)) {
-                        fitter.add(timeValue, data);
-                    }
-                }
-            } else { 
-                // Data is an array of numbers (or other non-object types).
-                // The 'data' variable itself is the y-value, and 'index' is the x-value.
-                // We still need to check for null/NaN here because 'data' (the y-value) could be null/NaN
-                // even if the entry 'data' (the point/container) wasn't null in the initial check.
-                // This applies if dataset.data = [1, 2, null, 4].
-                if (data != null && !isNaN(data)) {
-                     fitter.add(index, data);
-                }
-            }
-        });
+        const chartLabels = datasetMeta.controller.chart.data.labels;
+        collectDataPoints(fitter, dataset, trendoffset, effectiveFirstIndex, xy, xScale, xAxisKey, yAxisKey, chartLabels);
 
         // --- Trendline Coordinate Calculation ---
         // Ensure there are enough points to form a trendline.
@@ -583,91 +720,11 @@
             return; // Not enough data points to calculate a trendline.
         }
 
-        // These variables will hold the pixel coordinates for drawing the trendline.
-        let x1_px, y1_px, x2_px, y2_px; 
-
         const chartArea = datasetMeta.controller.chart.chartArea; // Defines the drawable area in pixels.
 
-        // Determine trendline start/end points based on the 'projection' option.
-        if (trendlineConfig.projection) {
-            let points = [];
-
-            if (isExponential) {
-                // For exponential curves, we generate points across the x-axis range
-                const val_x_left = xScale.getValueForPixel(chartArea.left);
-                const y_at_left = fitter.f(val_x_left); 
-                points.push({ x: val_x_left, y: y_at_left });
-
-                const val_x_right = xScale.getValueForPixel(chartArea.right);
-                const y_at_right = fitter.f(val_x_right); 
-                points.push({ x: val_x_right, y: y_at_right });
-            } else {
-                // Linear projection logic (existing code)
-                const slope = fitter.slope();
-                const intercept = fitter.intercept();
-
-                if (Math.abs(slope) > 1e-6) { 
-                    const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
-                    const x_at_top = (val_y_top - intercept) / slope; 
-                    points.push({ x: x_at_top, y: val_y_top });
-
-                    const val_y_bottom = yScaleToUse.getValueForPixel(chartArea.bottom);
-                    const x_at_bottom = (val_y_bottom - intercept) / slope; 
-                    points.push({ x: x_at_bottom, y: val_y_bottom });
-                } else { 
-                     points.push({ x: xScale.getValueForPixel(chartArea.left), y: intercept});
-                     points.push({ x: xScale.getValueForPixel(chartArea.right), y: intercept});
-                }
-
-                const val_x_left = xScale.getValueForPixel(chartArea.left);
-                const y_at_left = fitter.f(val_x_left); 
-                points.push({ x: val_x_left, y: y_at_left });
-
-                const val_x_right = xScale.getValueForPixel(chartArea.right);
-                const y_at_right = fitter.f(val_x_right); 
-                points.push({ x: val_x_right, y: y_at_right });
-            }
-            
-            const chartMinX = xScale.getValueForPixel(chartArea.left); 
-            const chartMaxX = xScale.getValueForPixel(chartArea.right); 
-            
-            const yValsFromPixels = [yScaleToUse.getValueForPixel(chartArea.top), yScaleToUse.getValueForPixel(chartArea.bottom)];
-            const finiteYVals = yValsFromPixels.filter(y => isFinite(y));
-            // Ensure actualChartMinY and actualChartMaxY are correctly ordered for the filter
-            const actualChartMinY = finiteYVals.length > 0 ? Math.min(...finiteYVals) : -Infinity; 
-            const actualChartMaxY = finiteYVals.length > 0 ? Math.max(...finiteYVals) : Infinity;
-            
-            let validPoints = points.filter(p => 
-                isFinite(p.x) && isFinite(p.y) && 
-                p.x >= chartMinX && p.x <= chartMaxX && p.y >= actualChartMinY && p.y <= actualChartMaxY
-            );
-            
-            validPoints = validPoints.filter((point, index, self) =>
-                index === self.findIndex((t) => (
-                    Math.abs(t.x - point.x) < 1e-4 && Math.abs(t.y - point.y) < 1e-4 
-                ))
-            );
-            
-            if (validPoints.length >= 2) {
-                validPoints.sort((a,b) => a.x - b.x || a.y - b.y); 
-
-                x1_px = xScale.getPixelForValue(validPoints[0].x);
-                y1_px = yScaleToUse.getPixelForValue(validPoints[0].y);
-                x2_px = xScale.getPixelForValue(validPoints[validPoints.length - 1].x);
-                y2_px = yScaleToUse.getPixelForValue(validPoints[validPoints.length - 1].y);
-            } else {
-                x1_px = NaN; y1_px = NaN; x2_px = NaN; y2_px = NaN;
-            }
-
-        } else {
-            const y_at_minx = fitter.f(fitter.minx); 
-            const y_at_maxx = fitter.f(fitter.maxx); 
-
-            x1_px = xScale.getPixelForValue(fitter.minx);
-            y1_px = yScaleToUse.getPixelForValue(y_at_minx);
-            x2_px = xScale.getPixelForValue(fitter.maxx);
-            y2_px = yScaleToUse.getPixelForValue(y_at_maxx);
-        }
+        let { x1_px, y1_px, x2_px, y2_px } = calculateProjectedCoordinates(
+            fitter, isExponential, trendlineConfig, xScale, yScaleToUse, chartArea
+        );
 
         // --- Line Clipping and Drawing ---
         let clippedCoords = null;
@@ -708,19 +765,18 @@
                         })`;
                         }
                     }
-                    addTrendlineLabel(
-                        ctx,
-                        trendText,
-                        x1_px, 
-                        y1_px,
-                        x2_px,
-                        y2_px,
+                    addTrendlineLabel(ctx, {
+                        label: trendText,
+                        x1: x1_px,
+                        y1: y1_px,
+                        x2: x2_px,
+                        y2: y2_px,
                         angle,
-                        color,
+                        labelColor: color,
                         family,
                         size,
-                        offset
-                    );
+                        offset,
+                    });
                 }
             }
         }
@@ -800,6 +856,108 @@
     }
     // Removed adjustLineForOverflow function
 
+    /**
+     * Generates an accessible description string for a trendline.
+     * @param {Object} fitter - The LineFitter or ExponentialFitter instance.
+     * @param {Object} dataset - The chart dataset configuration.
+     * @param {boolean} isExponential - Whether this is an exponential trendline.
+     * @returns {string} A human-readable description for screen readers.
+     */
+
+    /**
+     * Generates an accessible description for all trendlines in a chart.
+     * Aggregates descriptions from all datasets that have trendline configurations.
+     * @param {Chart} chartInstance - The Chart.js chart instance.
+     * @returns {string} Combined description for all trendlines.
+     */
+    function generateChartTrendlineDescription(chartInstance) {
+        const descriptions = [];
+
+        chartInstance.data.datasets.forEach((dataset) => {
+            const isExponential = !!dataset.trendlineExponential;
+            const config = dataset.trendlineExponential || dataset.trendlineLinear;
+
+            if (!config) return;
+
+            // If explicit a11y description is provided, use it
+            if (config.accessibility && config.accessibility.description) {
+                descriptions.push(config.accessibility.description);
+                return;
+            }
+
+            // Build a description from the config
+            const dataLabel = dataset.label || 'Dataset';
+            const trendType = isExponential ? 'Exponential trendline' : 'Linear trendline';
+
+            if (config.accessibility && config.accessibility.label) {
+                descriptions.push(`${trendType} for ${dataLabel}: ${config.accessibility.label}`);
+            } else {
+                descriptions.push(`${trendType} for ${dataLabel}.`);
+            }
+        });
+
+        return descriptions.join(' ');
+    }
+
+    /**
+     * Applies ARIA attributes to the chart canvas for trendline accessibility.
+     * Sets role="img" and a descriptive aria-label on the canvas element.
+     * @param {Chart} chartInstance - The Chart.js chart instance.
+     */
+    function applyCanvasAccessibility(chartInstance) {
+        const canvas = chartInstance.canvas;
+        if (!canvas) return;
+
+        // Set role="img" for screen readers to treat canvas as an image
+        canvas.setAttribute('role', 'img');
+
+        // Generate and apply description
+        const description = generateChartTrendlineDescription(chartInstance);
+        if (description) {
+            // Preserve the original user-provided aria-label so repeated calls
+            // (afterInit + afterUpdate) don't accumulate duplicate descriptions.
+            // See: https://github.com/Makanz/chartjs-plugin-trendline/issues/152
+            if (!canvas.hasAttribute('data-trendline-original-label')) {
+                canvas.setAttribute(
+                    'data-trendline-original-label',
+                    canvas.getAttribute('aria-label') || ''
+                );
+            }
+            const originalLabel = canvas.getAttribute('data-trendline-original-label') || '';
+            canvas.setAttribute(
+                'aria-label',
+                originalLabel ? `${originalLabel}. ${description}` : description
+            );
+        }
+    }
+
+    /**
+     * Creates a legend item object from a dataset's trendline configuration.
+     * Returns null when no legend item should be added.
+     * @param {object} dataset - The chart dataset
+     * @param {object} [trendlineConfig] - The trendline config (trendlineLinear or trendlineExponential)
+     * @returns {object|null} Legend item object or null
+     */
+    function createLegendItemFromTrendline(dataset, trendlineConfig) {
+        if (!trendlineConfig) return null;
+
+        const legendConfig = trendlineConfig.legend;
+        if (!legendConfig || legendConfig.display === false) return null;
+
+        return {
+            text: legendConfig.text || dataset.label || 'Trendline',
+            strokeStyle:
+                legendConfig.strokeStyle ||
+                legendConfig.color ||
+                dataset.borderColor ||
+                'rgba(169,169,169, .6)',
+            fillStyle: legendConfig.fillStyle || 'transparent',
+            lineCap: legendConfig.lineCap || 'butt',
+            lineDash: legendConfig.lineDash || [],
+            lineWidth: legendConfig.lineWidth ?? legendConfig.width ?? 1,
+        };
+    }
+
     const pluginTrendlineLinear = {
         id: 'chartjs-plugin-trendline',
 
@@ -837,51 +995,51 @@
             ctx.setLineDash([]);
         },
 
+        afterInit: (chartInstance) => {
+            applyCanvasAccessibility(chartInstance);
+        },
+
+        afterUpdate: (chartInstance) => {
+            applyCanvasAccessibility(chartInstance);
+        },
+
         beforeInit: (chartInstance) => {
             const datasets = chartInstance.data.datasets;
-
-            datasets.forEach((dataset) => {
+            const hasLegendConfig = datasets.some((dataset) => {
                 const trendlineConfig = dataset.trendlineLinear || dataset.trendlineExponential;
-                if (trendlineConfig && (trendlineConfig.label || trendlineConfig.legend)) {
-                    // Access chartInstance to update legend labels
-                    const originalGenerateLabels =
-                        chartInstance.legend.options.labels.generateLabels;
-
-                    chartInstance.legend.options.labels.generateLabels = function (
-                        chart
-                    ) {
-                        const defaultLabels = originalGenerateLabels(chart);
-
-                        const legendConfig = trendlineConfig.legend;
-
-                        // Display the legend if it's populated and not set to hidden
-                        if (legendConfig && legendConfig.display !== false) {
-                            defaultLabels.push({
-                                text: legendConfig.text || dataset.label || 'Trendline',
-                                strokeStyle:
-                                    legendConfig.strokeStyle ||
-                                    legendConfig.color ||
-                                    dataset.borderColor ||
-                                    'rgba(169,169,169, .6)',
-                                fillStyle: legendConfig.fillStyle || 'transparent',
-                                lineCap: legendConfig.lineCap || 'butt',
-                                lineDash: legendConfig.lineDash || [],
-                                lineWidth: legendConfig.lineWidth ?? legendConfig.width ?? 1,
-                            });
-                        }
-                        return defaultLabels;
-                    };
-                }
+                return createLegendItemFromTrendline(dataset, trendlineConfig) !== null;
             });
+
+            if (!hasLegendConfig) return;
+
+            const originalGenerateLabels =
+                chartInstance.legend.options.labels.generateLabels;
+
+            chartInstance.legend.options.labels.generateLabels = function (chart) {
+                const defaultLabels = originalGenerateLabels(chart);
+
+                chart.data.datasets.forEach((dataset) => {
+                    const trendlineConfig = dataset.trendlineLinear || dataset.trendlineExponential;
+                    const item = createLegendItemFromTrendline(dataset, trendlineConfig);
+                    if (item) {
+                        defaultLabels.push(item);
+                    }
+                });
+
+                return defaultLabels;
+            };
         },
     };
 
-    // If we're in the browser and have access to the global Chart obj, register plugin automatically
-    if (typeof window !== 'undefined' && window.Chart) {
-        if (window.Chart.hasOwnProperty('register')) {
-            window.Chart.register(pluginTrendlineLinear);
-        } else {
-            window.Chart.plugins.register(pluginTrendlineLinear);
+    // Auto-register plugin when Chart.js is available in the browser
+    if (typeof window !== 'undefined') {
+        const Chart = window.Chart;
+        if (Chart) {
+            if (typeof Chart.register === 'function') {
+                Chart.register(pluginTrendlineLinear);
+            } else {
+                Chart.plugins.register(pluginTrendlineLinear);
+            }
         }
     }
 
