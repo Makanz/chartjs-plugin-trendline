@@ -38,6 +38,7 @@
     "rollup": "^4.60.4"
   },
   "overrides": {
+    "js-yaml": ">=5.2.2",
     "ws": ">=8.21.0",
     "brace-expansion": "2.1.4"
   },
