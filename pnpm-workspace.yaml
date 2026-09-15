@@ -7,3 +7,4 @@ overrides:
   baseline-browser-mapping: '>=2.11.0'
 ignoredBuiltDependencies:
   - unrs-resolver
+strictDepBuilds: false
