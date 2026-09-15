@@ -5,3 +5,5 @@ overrides:
   brace-expansion: 2.1.4
   browserslist: '>=4.28.7'
   baseline-browser-mapping: '>=2.11.0'
+ignoredBuiltDependencies:
+  - unrs-resolver
