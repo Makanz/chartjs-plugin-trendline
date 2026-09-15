@@ -1,5 +1,5 @@
 /*!
- * chartjs-plugin-trendline v3.2.12
+ * chartjs-plugin-trendline v3.2.13
  * https://github.com/Makanz/chartjs-plugin-trendline
  * (c) 2026 Marcus Alsterfjord
  * Released under the MIT license
