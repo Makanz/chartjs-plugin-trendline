@@ -1,0 +1,10 @@
+overrides:
+  js-yaml: '>=5.2.2'
+  serialize-javascript: ^7.0.3
+  ws: '>=8.21.0'
+  brace-expansion: 2.1.4
+  browserslist: '>=4.28.7'
+  baseline-browser-mapping: '>=2.11.0'
+ignoredBuiltDependencies:
+  - unrs-resolver
+strictDepBuilds: false
