@@ -7,7 +7,7 @@ on:
             - 'beta/*' # Ex: beta/1.2.3-beta.1 → publish as beta
 
 permissions:
-    contents: read
+    contents: write # To create a GitHub Release
     id-token: write # For npm provenance
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
 
         permissions:
             id-token: write
-            contents: read
+            contents: write # To create a GitHub Release
 
         steps:
             - name: Checkout repository
@@ -85,3 +85,8 @@ jobs:
               run: pnpm publish --provenance --access public --no-git-checks
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  generate_release_notes: true
