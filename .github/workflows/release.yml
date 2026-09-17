@@ -21,10 +21,19 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  # Full history: the ancestry check below needs a common
+                  # ancestor between the tag commit and main.
+                  fetch-depth: 0
 
             - name: Verify tag is on main branch
               run: |
-                  git fetch origin main --depth=1
+                  # Do NOT use --depth=1 here (nor a shallow checkout above).
+                  # Two shallow fetches leave the tag commit and origin/main as
+                  # disconnected histories with no shared parent, so
+                  # `git merge-base --is-ancestor` always reports "not an
+                  # ancestor" — even for tags that are genuinely on main.
+                  git fetch origin main
                   if ! git merge-base --is-ancestor HEAD origin/main; then
                     echo "::error ::❌ Tag commit is not on main branch — release cancelled"
                     exit 1
