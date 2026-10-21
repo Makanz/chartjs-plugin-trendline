@@ -28,19 +28,19 @@
   },
   "homepage": "https://github.com/Makanz/chartjs-plugin-trendline#readme",
   "devDependencies": {
-    "@babel/core": "^7.29.6",
-    "@babel/preset-env": "^7.29.5",
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
     "@rollup/plugin-terser": "^1.0.0",
-    "babel-jest": "^30.4.1",
-    "jest": "^30.4.2",
-    "jest-canvas-mock": "^2.5.2",
-    "jest-environment-jsdom": "^30.4.1",
-    "rollup": "^4.60.4"
+    "babel-jest": "^30.5.2",
+    "jest": "^30.5.2",
+    "jest-canvas-mock": "^2.5.8",
+    "jest-environment-jsdom": "^30.5.2",
+    "rollup": "^4.64.10"
   },
   "overrides": {
     "js-yaml": ">=5.2.2",
     "ws": ">=8.21.0",
-    "brace-expansion": "2.1.4",
+    "brace-expansion": "2.1.7",
     "browserslist": ">=4.28.7",
     "baseline-browser-mapping": ">=2.11.0"
   },
@@ -49,7 +49,7 @@
       "js-yaml": ">=5.2.2",
       "serialize-javascript": "^7.0.3",
       "ws": ">=8.21.0",
-      "brace-expansion": "2.1.4",
+      "brace-expansion": "2.1.7",
       "browserslist": ">=4.28.7",
       "baseline-browser-mapping": ">=2.11.0"
     }
