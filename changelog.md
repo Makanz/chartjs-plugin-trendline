@@ -1,3 +1,12 @@
+# Changelog 3.2.14
+
+### Dependencies
+- Updated dev dependencies (jest 30.5.2, babel-jest 30.5.2, jest-environment-jsdom 30.5.2, jest-canvas-mock 2.5.8, rollup 4.64.10, @babel/core 7.29.7, @babel/preset-env 7.29.7)
+- Bumped the `brace-expansion` override to 2.1.7, patching three DoS advisories (GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr)
+
+### Documentation
+- Updated the LICENSE copyright year to 2025-2026
+
 # Changelog 3.1.0
 
 ### New Features
