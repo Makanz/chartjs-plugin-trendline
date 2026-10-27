@@ -35,7 +35,7 @@
     "jest": "^30.5.2",
     "jest-canvas-mock": "^2.5.8",
     "jest-environment-jsdom": "^30.5.2",
-    "rollup": "^4.64.10"
+    "rollup": "^4.64.12"
   },
   "overrides": {
     "js-yaml": ">=5.2.2",
