@@ -10,7 +10,7 @@ export class ExponentialFitter extends BaseFitter {
         this.sumlny = 0;
         this.sumxlny = 0;
         this.hasValidData = true;
-        this.dataPoints = []; // Store data points for correlation calculation
+        this.sumlny2 = 0;
         this._cachedGrowthRate = null;
         this._cachedCoefficient = null;
         this._cachedCorrelation = null;
@@ -36,7 +36,7 @@ export class ExponentialFitter extends BaseFitter {
         super.add(x);
         this.sumlny += lny;
         this.sumxlny += x * lny;
-        this.dataPoints.push({x, y, lny}); // Store actual data points
+        this.sumlny2 += lny * lny;
     }
 
     /**
@@ -123,17 +123,22 @@ export class ExponentialFitter extends BaseFitter {
         const lnA = (this.sumlny - this._cachedGrowthRate * this.sumx) / this.count;
         this._cachedCoefficient = Math.exp(lnA);
 
-        const meanLnY = this.sumlny / this.count;
-        let ssTotal = 0;
-        let ssRes = 0;
-        
-        for (const point of this.dataPoints) {
-            const predictedLnY = lnA + this._cachedGrowthRate * point.x;
-            ssTotal += Math.pow(point.lny - meanLnY, 2);
-            ssRes += Math.pow(point.lny - predictedLnY, 2);
-        }
-        
-        this._cachedCorrelation = ssTotal === 0 ? 1 : Math.max(0, 1 - (ssRes / ssTotal));
+        // R^2 computed from running sums instead of a stored copy of every
+        // point, which allocated one object per data point per fit:
+        //   ssTotal = sum((lnY - mean)^2) = sumlnY2 - sumlny^2 / n
+        //   ssRes   = sum((lnY - lnA - b*x)^2), expanded analytically
+        const n = this.count;
+        const b = this._cachedGrowthRate;
+        const ssTotal = this.sumlny2 - (this.sumlny * this.sumlny) / n;
+        const ssRes =
+            this.sumlny2 -
+            2 * lnA * this.sumlny -
+            2 * b * this.sumxlny +
+            n * lnA * lnA +
+            2 * lnA * b * this.sumx +
+            b * b * this.sumx2;
+
+        this._cachedCorrelation = ssTotal === 0 ? 1 : Math.max(0, 1 - ssRes / ssTotal);
         this._cacheValid = true;
     }
 }

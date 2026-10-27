@@ -29,37 +29,77 @@ function createLegendItemFromTrendline(dataset, trendlineConfig) {
     };
 }
 
+/**
+ * Per chart caches, valid for one chart.update(): the draw hook runs on every
+ * animation frame, so neither the regression fit nor the dataset ordering
+ * should be recomputed per frame. `beforeUpdate` throws the cache away.
+ * @type {WeakMap<Chart, {fits: Map, sortedDatasets: Array|null}>}
+ */
+const chartCaches = new WeakMap();
+
+const getChartCache = (chartInstance) => {
+    let cache = chartCaches.get(chartInstance);
+    if (!cache) {
+        cache = { fits: new Map(), sortedDatasets: null };
+        chartCaches.set(chartInstance, cache);
+    }
+    return cache;
+};
+
+const resetChartCache = (chartInstance) => {
+    chartCaches.delete(chartInstance);
+};
+
+/**
+ * Returns the trendline datasets in drawing order.
+ * @param {Array} datasets - chart.data.datasets
+ * @returns {Array<{dataset: object, index: number}>} Sorted entries
+ */
+const sortTrendlineDatasets = (datasets) =>
+    datasets
+        .map((dataset, index) => ({ dataset, index }))
+        .filter((entry) => entry.dataset.trendlineLinear || entry.dataset.trendlineExponential)
+        .sort((a, b) => {
+            const orderA = a.dataset.order ?? 0;
+            const orderB = b.dataset.order ?? 0;
+
+            // Push 0-order datasets to the end (they draw last / on top)
+            if (orderA === 0 && orderB !== 0) return 1;
+            if (orderB === 0 && orderA !== 0) return -1;
+
+            // Otherwise, draw lower order first
+            return orderA - orderB;
+        });
+
 export const pluginTrendlineLinear = {
     id: 'chartjs-plugin-trendline',
 
     afterDatasetsDraw: (chartInstance) => {
         const ctx = chartInstance.ctx;
         const { xScale, yScale } = getScales(chartInstance);
+        const cache = getChartCache(chartInstance);
 
-        const sortedDatasets = chartInstance.data.datasets
-            .map((dataset, index) => ({ dataset, index }))
-            .filter((entry) => entry.dataset.trendlineLinear || entry.dataset.trendlineExponential)
-            .sort((a, b) => {
-                const orderA = a.dataset.order ?? 0;
-                const orderB = b.dataset.order ?? 0;
+        // Ordering is stable between updates, so it is computed once per update
+        // instead of on every animation frame.
+        if (!cache.sortedDatasets) {
+            cache.sortedDatasets = sortTrendlineDatasets(chartInstance.data.datasets);
+        }
 
-                // Push 0-order datasets to the end (they draw last / on top)
-                if (orderA === 0 && orderB !== 0) return 1;
-                if (orderB === 0 && orderA !== 0) return -1;
-
-                // Otherwise, draw lower order first
-                return orderA - orderB;
-            });
-
-        sortedDatasets.forEach(({ dataset, index }) => {
+        cache.sortedDatasets.forEach(({ dataset, index }) => {
             const showTrendline =
                 dataset.alwaysShowTrendline ||
                 chartInstance.isDatasetVisible(index);
 
-            if (showTrendline && dataset.data.length > 1) {
-                const datasetMeta = chartInstance.getDatasetMeta(index);
-                addFitter(datasetMeta, ctx, dataset, xScale, yScale);
-            }
+            if (!showTrendline || dataset.data.length <= 1) return;
+
+            const datasetMeta = chartInstance.getDatasetMeta(index);
+
+            // Bound datasets to their own x axis: with more than one horizontal
+            // scale, getScales() only returns a single (arbitrary) one.
+            const datasetXScale =
+                chartInstance.scales?.[dataset.xAxisID || 'x'] || xScale;
+
+            addFitter(datasetMeta, ctx, dataset, datasetXScale, yScale, cache.fits);
         });
 
         // Reset to solid line after drawing trendline
@@ -74,6 +114,15 @@ export const pluginTrendlineLinear = {
         applyCanvasAccessibility(chartInstance);
     },
 
+    beforeUpdate: (chartInstance) => {
+        // New data, scales or options: drop the cached fit and ordering.
+        resetChartCache(chartInstance);
+    },
+
+    beforeDestroy: (chartInstance) => {
+        resetChartCache(chartInstance);
+    },
+
     beforeInit: (chartInstance) => {
         const datasets = chartInstance.data.datasets;
         const hasLegendConfig = datasets.some((dataset) => {
@@ -83,10 +132,14 @@ export const pluginTrendlineLinear = {
 
         if (!hasLegendConfig) return;
 
-        const originalGenerateLabels =
-            chartInstance.legend.options.labels.generateLabels;
+        // The legend plugin may be disabled (plugins.legend.display: false), in
+        // which case chart.legend is undefined.
+        const legendLabels = chartInstance.legend?.options?.labels;
+        if (!legendLabels) return;
 
-        chartInstance.legend.options.labels.generateLabels = function (chart) {
+        const originalGenerateLabels = legendLabels.generateLabels;
+
+        legendLabels.generateLabels = function (chart) {
             const defaultLabels = originalGenerateLabels(chart);
 
             chart.data.datasets.forEach((dataset) => {

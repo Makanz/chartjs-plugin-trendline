@@ -53,23 +53,21 @@ describe('LineFitter', () => {
       expect(fitter.slope()).toBe(0);
     });
 
-    test('should return NaN for a vertical line (all x are same)', () => {
-      // Denominator: count * sumx2 - sumx * sumx
-      // If all x are x_c: count * (count * x_c^2) - (count * x_c)^2 = 0
-      // Numerator: count * sumxy - sumx * sumy
-      // If all x are x_c: count * (x_c * sumy) - (count * x_c) * sumy = 0
-      // So, 0/0 = NaN
+    test('should fall back to a horizontal line for a vertical line (all x are same)', () => {
+      // Denominator is 0 here (count * sumx2 - sumx^2 == 0), which used to
+      // produce 0/0 = NaN and make the trendline disappear. Now it degrades to
+      // slope 0 instead.
       const fitter = new LineFitter();
       fitter.add(1, 1);
       fitter.add(1, 2);
-      expect(fitter.slope()).toBeNaN();
+      expect(fitter.slope()).toBe(0);
     });
 
-    test('should return NaN for a vertical line (points added in decreasing y order, all x same)', () => {
+    test('should fall back to a horizontal line regardless of y order (all x same)', () => {
       const fitter = new LineFitter();
       fitter.add(1, 2);
       fitter.add(1, 1);
-      expect(fitter.slope()).toBeNaN();
+      expect(fitter.slope()).toBe(0);
     });
   });
 
@@ -104,19 +102,17 @@ describe('LineFitter', () => {
       expect(fitter.intercept()).toBe(5);
     });
 
-    test('should calculate intercept for a vertical line', () => {
-      // As established, slope for a vertical line (all x same) is NaN.
-      // intercept = (sumy - slope * sumx) / count = (sumy - NaN * sumx) / count = NaN
+    test('should use the mean y as intercept for a vertical line', () => {
+      // slope 0, so the line sits at the mean of y.
       const fitter = new LineFitter();
-      fitter.add(1, 1); // x=1, slope is NaN
+      fitter.add(1, 1);
       fitter.add(1, 2);
-      expect(fitter.intercept()).toBeNaN();
-
+      expect(fitter.intercept()).toBe(1.5);
 
       const fitter2 = new LineFitter();
-      fitter2.add(1, 2); // x=1, slope is NaN
+      fitter2.add(1, 2);
       fitter2.add(1, 1);
-      expect(fitter2.intercept()).toBeNaN();
+      expect(fitter2.intercept()).toBe(1.5);
     });
   });
 
@@ -154,23 +150,22 @@ describe('LineFitter', () => {
       expect(fitter.f(-10)).toBe(5);
     });
 
-    test('should predict y values for a vertical line', () => {
-      // slope is NaN for vertical line, intercept is NaN.
-      // f(x) = NaN * x + NaN = NaN
+    test('should predict the mean y for a vertical line', () => {
+      // slope 0, intercept = mean y -> every prediction is the mean.
       const fitter = new LineFitter();
-      fitter.add(1, 1); // x = 1. slope = NaN
-      fitter.add(1, 3); 
-      expect(fitter.f(1)).toBeNaN();
-      expect(fitter.f(2)).toBeNaN();
-      expect(fitter.f(0)).toBeNaN();
+      fitter.add(1, 1);
+      fitter.add(1, 3);
+      expect(fitter.f(1)).toBe(2);
+      expect(fitter.f(2)).toBe(2);
+      expect(fitter.f(0)).toBe(2);
 
 
       const fitter2 = new LineFitter();
-      fitter2.add(1, 3); // x = 1. slope = NaN
-      fitter2.add(1, 1); 
-      expect(fitter2.f(1)).toBeNaN();
-      expect(fitter2.f(2)).toBeNaN();
-      expect(fitter2.f(0)).toBeNaN();
+      fitter2.add(1, 3);
+      fitter2.add(1, 1);
+      expect(fitter2.f(1)).toBe(2);
+      expect(fitter2.f(2)).toBe(2);
+      expect(fitter2.f(0)).toBe(2);
     });
   });
 
@@ -206,8 +201,8 @@ describe('LineFitter', () => {
     test('should handle horizontal line (y=c, c!=0)', () => {
       const fitter = new LineFitter();
       fitter.add(1, 2); // y = 2. Slope = 0, Intercept = 2.
-      fitter.add(2, 2); // x-intercept = -2/0 = -Infinity
-      expect(fitter.fo()).toBe(-Infinity);
+      fitter.add(2, 2); // horizontal: no x-intercept -> NaN
+      expect(fitter.fo()).toBeNaN();
     });
 
     test('should handle horizontal line (y=0)', () => {
@@ -257,9 +252,9 @@ describe('LineFitter', () => {
 
       const fitter3 = new LineFitter();
       fitter3.add(1, 1);
-      fitter3.add(1, 2); // Slope = NaN (vertical)
+      fitter3.add(1, 2); // vertical -> slope falls back to 0
       expect(fitter3.scale()).toBe(fitter3.slope());
-      expect(fitter3.scale()).toBeNaN();
+      expect(fitter3.scale()).toBe(0);
     });
   });
 
@@ -347,7 +342,7 @@ describe('LineFitter', () => {
  * test.failing = green while the bug exists, red once it is fixed.
  */
 describe('LineFitter - degenerate input', () => {
-  test.failing('returns a finite horizontal line when every x is identical', () => {
+  test('returns a finite horizontal line when every x is identical', () => {
     const fitter = new LineFitter();
     fitter.add(5, 1);
     fitter.add(5, 2);
@@ -359,7 +354,7 @@ describe('LineFitter - degenerate input', () => {
     expect(fitter.f(5)).toBe(2);
   });
 
-  test.failing('two points with the same timestamp are the realistic trigger', () => {
+  test('two points with the same timestamp are the realistic trigger', () => {
     const fitter = new LineFitter();
     fitter.add(1.7e12, 10);
     fitter.add(1.7e12, 20);

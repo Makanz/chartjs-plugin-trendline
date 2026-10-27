@@ -73,6 +73,17 @@ export const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
 
+    // Identical colours are the common case (only one colour configured, the
+    // other falls back to the same default). A gradient then costs a
+    // createLinearGradient + two addColorStop calls per dataset per frame for
+    // a solid line.
+    if (colorMin === colorMax) {
+        ctx.strokeStyle = colorMin;
+        ctx.stroke();
+        ctx.closePath();
+        return;
+    }
+
     try {
         // Additional validation for degenerate gradients
         const dx = x2 - x1;

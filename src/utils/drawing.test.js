@@ -327,7 +327,7 @@ describe('drawTrendline - identical gradient colors', () => {
     };
   });
 
-  test.failing('skips createLinearGradient when colorMin === colorMax', () => {
+  test('skips createLinearGradient when colorMin === colorMax', () => {
     drawTrendline({ ctx, x1: 10, y1: 10, x2: 110, y2: 110, colorMin: 'red', colorMax: 'red' });
 
     expect(ctx.createLinearGradient).not.toHaveBeenCalled();

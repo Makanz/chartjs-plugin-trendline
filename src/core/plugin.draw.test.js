@@ -168,7 +168,7 @@ describe('pluginTrendlineLinear.afterDatasetsDraw', () => {
      * test.failing = the suite stays green while the bug exists, and this test
      * turns red as soon as the bug is fixed — then remove `.failing`.
      */
-    test.failing('uses the scale from dataset.xAxisID when several x axes exist', () => {
+    test('uses the scale from dataset.xAxisID when several x axes exist', () => {
         const chart = createChart({
             datasets: [
                 { label: 'on-x', data: [1, 2], xAxisID: 'x', trendlineLinear: {} },
