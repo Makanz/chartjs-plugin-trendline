@@ -48,6 +48,12 @@ This repository contains a Chart.js plugin that adds linear trendline support to
 - `src/utils/lineFitter.js`: Regression math
 - `example/*.html`: Manual visual verification targets
 
+## Code Review
+
+Every review of this repo follows `REVIEW.md`: what counts as a bug here, what
+must be true before a change lands, and which paths always need a human. Read it
+before reviewing a diff, and move a repeated review comment into it.
+
 ## Restrictions
 
 - Do not modify build config unless build behavior must change
