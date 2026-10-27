@@ -9,6 +9,7 @@
 
 ### Bug Fixes
 - `LineFitter` no longer returns `NaN` when every x value is identical (two points sharing a timestamp, for example). It degrades to a horizontal line through the mean y, so the trendline is drawn instead of silently disappearing
+- `LineFitter` computes slope and intercept from running centred sums (Welford) instead of `count * sumx2 - sumx * sumx`, which cancelled away every significant digit once x was an epoch-millisecond value: a normal rising series spread over seconds or minutes fitted to slope 0 and was drawn as a flat line. The constant-x case is now detected on the centred sum of squares, where it is exact
 - `beforeInit` no longer throws when the legend is disabled (`plugins.legend.display: false`) or absent
 - Datasets bound to a non-default x axis (`xAxisID`) are now fitted against their own scale
 - `fo()` returns `NaN` for horizontal lines instead of `-Infinity`
