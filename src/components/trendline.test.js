@@ -1233,3 +1233,98 @@ describe('calculateProjectedCoordinates', () => {
         });
     });
 });
+
+/**
+ * Edge cases that addFitter must survive without drawing:
+ * datasets that are entirely null, and trendlines that fall outside the
+ * chart area (Li-Yang/Barsky rejects them, including the parallel-edge path).
+ */
+describe('addFitter - empty and out-of-area datasets', () => {
+    let mockCtx;
+    let mockDatasetMeta;
+    let mockXScale;
+    let mockYScale;
+    let fitter;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+
+        fitter = {
+            add: jest.fn(),
+            f: jest.fn(() => 100),
+            slope: jest.fn(() => 0),
+            intercept: jest.fn(() => 100),
+            fo: jest.fn(() => 0),
+            scale: jest.fn(() => 0),
+            minx: 0,
+            maxx: 10,
+            count: 0,
+        };
+        LineFitter.mockImplementation(() => fitter);
+
+        mockCtx = {
+            save: jest.fn(), translate: jest.fn(), rotate: jest.fn(), fillText: jest.fn(),
+            measureText: jest.fn(() => ({ width: 50 })), font: '', fillStyle: '',
+            strokeStyle: '', lineWidth: 0, beginPath: jest.fn(), moveTo: jest.fn(),
+            lineTo: jest.fn(), stroke: jest.fn(), restore: jest.fn(),
+        };
+
+        mockDatasetMeta = {
+            controller: {
+                chart: {
+                    scales: {
+                        y: {
+                            getPixelForValue: jest.fn(() => 600), // below chartArea.bottom (450)
+                            getValueForPixel: jest.fn(() => 60),
+                        },
+                    },
+                    options: {},
+                    chartArea: { top: 50, bottom: 450, left: 50, right: 750, width: 700, height: 400 },
+                    data: { labels: [] },
+                },
+            },
+            data: [],
+        };
+
+        mockXScale = {
+            getPixelForValue: jest.fn((value) => value * 10),
+            getValueForPixel: jest.fn((pixel) => pixel / 10),
+            options: { type: 'linear' },
+        };
+        mockYScale = mockDatasetMeta.controller.chart.scales.y;
+    });
+
+    test('dataset with only null values draws nothing', () => {
+        const dataset = { data: [null, undefined, null], trendlineLinear: {}, borderColor: 'blue' };
+
+        addFitter(mockDatasetMeta, mockCtx, dataset, mockXScale, mockYScale);
+
+        expect(fitter.add).not.toHaveBeenCalled();
+        expect(drawingUtils.drawTrendline).not.toHaveBeenCalled();
+    });
+
+    test('positive trendoffset past the last valid point draws nothing', () => {
+        const dataset = {
+            data: [1, 2, null, null],
+            trendlineLinear: { trendoffset: 2 },
+            borderColor: 'blue',
+        };
+
+        addFitter(mockDatasetMeta, mockCtx, dataset, mockXScale, mockYScale);
+
+        expect(fitter.add).not.toHaveBeenCalled();
+        expect(drawingUtils.drawTrendline).not.toHaveBeenCalled();
+    });
+
+    test('trendline entirely outside the chart area is clipped away', () => {
+        // Horizontal line (slope 0) at y=100 rendered at pixel 600, i.e. below
+        // chartArea.bottom -> the parallel-edge reject path in liangBarskyClip.
+        fitter.count = 3;
+        const dataset = { data: [1, 2, 3], trendlineLinear: {}, borderColor: 'blue' };
+
+        addFitter(mockDatasetMeta, mockCtx, dataset, mockXScale, mockYScale);
+
+        expect(fitter.add).toHaveBeenCalledTimes(3);
+        expect(drawingUtils.drawTrendline).not.toHaveBeenCalled();
+    });
+});

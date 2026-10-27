@@ -210,3 +210,34 @@ describe('applyCanvasAccessibility', () => {
         expect(() => applyCanvasAccessibility(withoutCanvas)).not.toThrow();
     });
 });
+
+describe('generateChartTrendlineDescription - custom accessibility label', () => {
+    it('uses config.accessibility.label when no description is given', () => {
+        const chartInstance = {
+            data: {
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        trendlineLinear: { accessibility: { label: 'rising steadily' } },
+                    },
+                ],
+            },
+        };
+
+        const description = generateChartTrendlineDescription(chartInstance);
+
+        expect(description).toBe('Linear trendline for Revenue: rising steadily');
+    });
+});
+
+describe('generateChartTrendlineDescription - missing dataset label', () => {
+    it('falls back to "Dataset" when the dataset has no label', () => {
+        const chartInstance = {
+            data: { datasets: [{ trendlineExponential: {} }] },
+        };
+
+        expect(generateChartTrendlineDescription(chartInstance)).toBe(
+            'Exponential trendline for Dataset.'
+        );
+    });
+});

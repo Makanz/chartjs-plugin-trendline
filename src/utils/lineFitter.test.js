@@ -338,3 +338,33 @@ describe('LineFitter', () => {
     });
   });
 });
+
+/**
+ * Degenerate input: every x identical (e.g. several points sharing one
+ * timestamp). ExponentialFitter guards its denominator, LineFitter does not,
+ * so slope/intercept become NaN and the trendline silently disappears.
+ *
+ * test.failing = green while the bug exists, red once it is fixed.
+ */
+describe('LineFitter - degenerate input', () => {
+  test.failing('returns a finite horizontal line when every x is identical', () => {
+    const fitter = new LineFitter();
+    fitter.add(5, 1);
+    fitter.add(5, 2);
+    fitter.add(5, 3);
+
+    expect(fitter.count).toBe(3);
+    expect(fitter.slope()).toBe(0);
+    expect(fitter.intercept()).toBe(2); // mean of y
+    expect(fitter.f(5)).toBe(2);
+  });
+
+  test.failing('two points with the same timestamp are the realistic trigger', () => {
+    const fitter = new LineFitter();
+    fitter.add(1.7e12, 10);
+    fitter.add(1.7e12, 20);
+
+    // Whatever the fix does, the result must be usable for drawing a line.
+    expect(Number.isFinite(fitter.slope())).toBe(true); // currently NaN -> fails
+  });
+});
