@@ -306,3 +306,39 @@ describe('fillBelowTrendline', () => {
     expect(mockCtx.fill).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Optimization: when colorMin and colorMax are the same (the default whenever
+ * the user sets only one color) the gradient is pointless. Creating one costs
+ * a createLinearGradient + two addColorStop per dataset per animation frame.
+ */
+describe('drawTrendline - identical gradient colors', () => {
+  let ctx;
+
+  beforeEach(() => {
+    ctx = {
+      beginPath: jest.fn(),
+      moveTo: jest.fn(),
+      lineTo: jest.fn(),
+      stroke: jest.fn(),
+      closePath: jest.fn(),
+      createLinearGradient: jest.fn(() => ({ addColorStop: jest.fn() })),
+      strokeStyle: '',
+    };
+  });
+
+  test.failing('skips createLinearGradient when colorMin === colorMax', () => {
+    drawTrendline({ ctx, x1: 10, y1: 10, x2: 110, y2: 110, colorMin: 'red', colorMax: 'red' });
+
+    expect(ctx.createLinearGradient).not.toHaveBeenCalled();
+    expect(ctx.strokeStyle).toBe('red');
+    expect(ctx.stroke).toHaveBeenCalled();
+  });
+
+  it('still creates a gradient when the two colors differ', () => {
+    drawTrendline({ ctx, x1: 10, y1: 10, x2: 110, y2: 110, colorMin: 'red', colorMax: 'blue' });
+
+    expect(ctx.createLinearGradient).toHaveBeenCalledWith(10, 10, 110, 110);
+    expect(ctx.stroke).toHaveBeenCalled();
+  });
+});

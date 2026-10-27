@@ -347,4 +347,30 @@ describe('pluginTrendlineLinear.beforeInit - legend generation', () => {
         expect(trendlineLabel.strokeStyle).toBe('#ff0000');
         expect(trendlineLabel.lineWidth).toBe(2);
     });
+
+    /**
+     * Regression: beforeInit reads chartInstance.legend.options.labels
+     * unguarded. With `plugins.legend.display: false` (or a chart without the
+     * legend plugin) `chart.legend` is undefined and the whole chart throws.
+     *
+     * test.failing = green while the bug exists, red once it is fixed.
+     */
+    test.failing('does not throw when the legend is disabled or absent', () => {
+        chartInstance.legend = undefined;
+        chartInstance.data.datasets = [
+            {
+                label: 'My Dataset',
+                trendlineLinear: { legend: { text: 'Trend' } },
+            },
+        ];
+
+        expect(() => pluginTrendlineLinear.beforeInit(chartInstance)).not.toThrow();
+    });
+
+    it('does not wrap generateLabels when the chart has no trendline legend config', () => {
+        chartInstance.legend = undefined;
+        chartInstance.data.datasets = [{ label: 'Plain', data: [1, 2, 3] }];
+
+        expect(() => pluginTrendlineLinear.beforeInit(chartInstance)).not.toThrow();
+    });
 });

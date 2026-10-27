@@ -2,3 +2,4 @@ node_modules
 .vs/
 .aider*
 nul
+coverage
