@@ -355,7 +355,7 @@ describe('pluginTrendlineLinear.beforeInit - legend generation', () => {
      *
      * test.failing = green while the bug exists, red once it is fixed.
      */
-    test.failing('does not throw when the legend is disabled or absent', () => {
+    test('does not throw when the legend is disabled or absent', () => {
         chartInstance.legend = undefined;
         chartInstance.data.datasets = [
             {

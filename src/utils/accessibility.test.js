@@ -57,12 +57,21 @@ describe('generateTrendlineDescription', () => {
         expect(desc).toContain('Exponential');
     });
 
-    it('should handle NaN slope gracefully', () => {
+    it('should handle a non-finite slope gracefully', () => {
+        // A vertical series now degrades to slope 0, so simulate a fitter that
+        // genuinely cannot produce numbers (empty data, failed fit).
+        const broken = { count: 2, slope: () => Infinity, intercept: () => NaN };
+        const desc = generateTrendlineDescription(broken, { label: 'Vertical' }, false);
+        expect(desc).toContain('could not be calculated');
+    });
+
+    it('should describe a vertical series as flat, not as an error', () => {
         const vertical = new LineFitter();
         vertical.add(5, 0);
         vertical.add(5, 10);
         const desc = generateTrendlineDescription(vertical, { label: 'Vertical' }, false);
-        expect(desc).toContain('could not be calculated');
+        expect(desc).toContain('flat (zero slope)');
+        expect(desc).not.toContain('could not be calculated');
     });
 });
 

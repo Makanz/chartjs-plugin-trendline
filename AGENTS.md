@@ -24,6 +24,8 @@ This repository contains a Chart.js plugin that adds linear trendline support to
 - Uses dataset `order` behavior (0-order datasets draw last)
 - Reads configuration from the dataset `trendlineLinear` property
 - Supports projection mode, custom styling, and labels with legends
+- **Caching:** `afterDatasetsDraw` runs on every animation frame, so the plugin keeps a per-chart cache (`WeakMap` in `core/plugin.js`) holding the fitted regression and the dataset draw order. `beforeUpdate`/`beforeDestroy` drop it. The fit is `O(points)`, so keep it out of the frame loop — only the pixel math and the stroke belong there. `addFitter` accepts an optional `fitCache` map for this; without it, it refits every call.
+- **Degenerate fits:** `LineFitter` falls back to a horizontal line through the mean y when all x values are identical (denominator 0). It returns `NaN` only when `count < 2`, which `addFitter` checks before drawing.
 
 ## Coding Standards
 

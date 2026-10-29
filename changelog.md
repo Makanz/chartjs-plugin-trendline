@@ -1,3 +1,23 @@
+# Unreleased
+
+### Performance
+- The regression fit is now cached per chart update instead of being recomputed on every animation frame (`afterDatasetsDraw` runs ~60 times per second during an animation). Measured with 10 000 points per dataset: **3.20 ms → 0.003 ms per frame** for time-scale label data and **0.22 ms → 0.012 ms** for numeric data
+- Dataset draw ordering is cached for the same reason
+- Skips the gradient when `colorMin === colorMax` (the default when only one colour is configured) — one less `createLinearGradient` and two less `addColorStop` calls per dataset per frame
+- Time-scale parsing no longer allocates a `Date` per point when the value is already a number, and the scale-type lookup is hoisted out of the per-point loop
+- `ExponentialFitter` computes R² from running sums instead of storing a copy of every data point
+
+### Bug Fixes
+- `LineFitter` no longer returns `NaN` when every x value is identical (two points sharing a timestamp, for example). It degrades to a horizontal line through the mean y, so the trendline is drawn instead of silently disappearing
+- `LineFitter` computes slope and intercept from running centred sums (Welford) instead of `count * sumx2 - sumx * sumx`, which cancelled away every significant digit once x was an epoch-millisecond value: a normal rising series spread over seconds or minutes fitted to slope 0 and was drawn as a flat line. The constant-x case is now detected on the centred sum of squares, where it is exact
+- `beforeInit` no longer throws when the legend is disabled (`plugins.legend.display: false`) or absent
+- Datasets are now fitted and drawn against the x scale Chart.js bound them to (`datasetMeta.xScale`) instead of one looked up by id. A chart that names its axis — `scales: { date: { type: 'time' } }` — had the trendline mapped through the default `x` scale Chart.js merges into every cartesian chart, so the line landed on the wrong pixels or was clipped away entirely. The same lookup also mis-fit datasets bound to a second horizontal axis
+- `fo()` returns `NaN` for horizontal lines instead of `-Infinity`
+- The y axis had the same lookup by id (`scales[dataset.yAxisID || 'y']`). A chart whose y axis is named anything but `y` lost its trendline completely, because the default `y` scale it resolved to is unscaled and the line fell outside the chart area
+
+### Testing
+- Coverage: 91.78 % → 98.6 % statements, 82.14 % → 93.4 % branches, 88.67 % → 100 % functions (167 → 216 tests)
+
 # Changelog 3.2.14
 
 ### Dependencies
