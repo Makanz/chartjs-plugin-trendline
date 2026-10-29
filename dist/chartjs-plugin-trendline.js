@@ -785,8 +785,15 @@
      *   refitted on every animation frame. Cleared by the plugin on chart update.
      */
     const addFitter = (datasetMeta, ctx, dataset, xScale, yScale, fitCache) => {
-        const yAxisID = dataset.yAxisID || 'y'; // Default to 'y' if no yAxisID is specified
-        const yScaleToUse = datasetMeta.controller.chart.scales[yAxisID] || yScale;
+        // Prefer the scale Chart.js bound the dataset to (linkScales stores it on
+        // the meta). A lookup by id misses whenever the user names their axis —
+        // `scales['y']` then resolves to the default scale Chart.js merges into
+        // every chart, which is not the one the data is plotted against, and the
+        // trendline ends up outside the chart area and is clipped away.
+        const yScaleToUse =
+            datasetMeta?.yScale ||
+            datasetMeta?.controller?.chart?.scales?.[dataset.yAxisID || 'y'] ||
+            yScale;
 
         // Determine if we're using exponential or linear trendline
         const isExponential = !!dataset.trendlineExponential;
@@ -1151,10 +1158,15 @@
 
                 const datasetMeta = chartInstance.getDatasetMeta(index);
 
-                // Bound datasets to their own x axis: with more than one horizontal
-                // scale, getScales() only returns a single (arbitrary) one.
+                // Chart.js resolves which scale a dataset is bound to in
+                // linkScales() and stores it on the meta. Prefer that over a lookup
+                // by name: the scale id is not necessarily 'x' (a chart may name its
+                // axis `date` or `temperature`), and with several horizontal scales
+                // there is no single right answer for getScales() to return.
                 const datasetXScale =
-                    chartInstance.scales?.[dataset.xAxisID || 'x'] || xScale;
+                    datasetMeta.xScale ||
+                    chartInstance.scales?.[dataset.xAxisID || 'x'] ||
+                    xScale;
 
                 addFitter(datasetMeta, ctx, dataset, datasetXScale, yScale, cache.fits);
             });
