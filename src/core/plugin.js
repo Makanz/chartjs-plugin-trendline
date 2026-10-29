@@ -94,10 +94,15 @@ export const pluginTrendlineLinear = {
 
             const datasetMeta = chartInstance.getDatasetMeta(index);
 
-            // Bound datasets to their own x axis: with more than one horizontal
-            // scale, getScales() only returns a single (arbitrary) one.
+            // Chart.js resolves which scale a dataset is bound to in
+            // linkScales() and stores it on the meta. Prefer that over a lookup
+            // by name: the scale id is not necessarily 'x' (a chart may name its
+            // axis `date` or `temperature`), and with several horizontal scales
+            // there is no single right answer for getScales() to return.
             const datasetXScale =
-                chartInstance.scales?.[dataset.xAxisID || 'x'] || xScale;
+                datasetMeta.xScale ||
+                chartInstance.scales?.[dataset.xAxisID || 'x'] ||
+                xScale;
 
             addFitter(datasetMeta, ctx, dataset, datasetXScale, yScale, cache.fits);
         });

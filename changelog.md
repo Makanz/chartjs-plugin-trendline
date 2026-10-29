@@ -11,7 +11,7 @@
 - `LineFitter` no longer returns `NaN` when every x value is identical (two points sharing a timestamp, for example). It degrades to a horizontal line through the mean y, so the trendline is drawn instead of silently disappearing
 - `LineFitter` computes slope and intercept from running centred sums (Welford) instead of `count * sumx2 - sumx * sumx`, which cancelled away every significant digit once x was an epoch-millisecond value: a normal rising series spread over seconds or minutes fitted to slope 0 and was drawn as a flat line. The constant-x case is now detected on the centred sum of squares, where it is exact
 - `beforeInit` no longer throws when the legend is disabled (`plugins.legend.display: false`) or absent
-- Datasets bound to a non-default x axis (`xAxisID`) are now fitted against their own scale
+- Datasets are now fitted and drawn against the x scale Chart.js bound them to (`datasetMeta.xScale`) instead of one looked up by id. A chart that names its axis — `scales: { date: { type: 'time' } }` — had the trendline mapped through the default `x` scale Chart.js merges into every cartesian chart, so the line landed on the wrong pixels or was clipped away entirely. The same lookup also mis-fit datasets bound to a second horizontal axis
 - `fo()` returns `NaN` for horizontal lines instead of `-Infinity`
 
 ### Testing
