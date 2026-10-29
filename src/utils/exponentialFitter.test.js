@@ -361,3 +361,91 @@ describe('ExponentialFitter', () => {
     });
   });
 });
+
+describe('ExponentialFitter - large x offsets (time scales)', () => {
+  const T0 = Date.UTC(2026, 0, 1);
+
+  const fitSeries = (length, stepMs, yOf) => {
+    const fitter = new ExponentialFitter();
+    for (let index = 0; index < length; index++) {
+      fitter.add(T0 + index * stepMs, yOf(index));
+    }
+    return fitter;
+  };
+
+  const referenceGrowthRate = (points) => {
+    const count = points.length;
+    const meanX = points.reduce((sum, [x]) => sum + x, 0) / count;
+    const meanLnY = points.reduce((sum, [, y]) => sum + Math.log(y), 0) / count;
+    let numerator = 0;
+    let denominator = 0;
+    for (const [x, y] of points) {
+      const dx = x - meanX;
+      numerator += dx * (Math.log(y) - meanLnY);
+      denominator += dx * dx;
+    }
+    return numerator / denominator;
+  };
+
+  test.each([
+    ['5 points, 1 s apart', 5, 1000],
+    ['40 points, 1 s apart', 40, 1000],
+    ['100 points, 1 min apart', 100, 60_000],
+    ['1000 points, 1 s apart', 1000, 1000],
+  ])('keeps the growth rate of a rising series: %s', (_name, length, stepMs) => {
+    const fitter = fitSeries(length, stepMs, (index) => 100 * Math.exp(0.0005 * index));
+
+    expect(fitter.growthRate()).toBeCloseTo(0.0005 / stepMs, 12);
+    expect(fitter.f(T0)).toBeCloseTo(100, 6);
+    expect(fitter.f(T0 + (length - 1) * stepMs)).toBeCloseTo(
+      100 * Math.exp(0.0005 * (length - 1)),
+      6,
+    );
+  });
+
+  /**
+   * Regression: f() evaluated a * e^(b*x) and guarded on |b * x| > 500. With an
+   * epoch-millisecond x, b * x is ~1e4 for an ordinary curve, so the guard fired
+   * on every point and the trendline was drawn flat at y = 0.
+   */
+  test('draws a curve, not a flat line, on an epoch-millisecond axis', () => {
+    const fitter = fitSeries(40, 1000, (index) => 100 * Math.exp(0.001 * index));
+    const first = fitter.f(T0);
+    const last = fitter.f(T0 + 39_000);
+
+    expect(first).toBeGreaterThan(0);
+    expect(last).toBeGreaterThan(first);
+    expect(last / first).toBeCloseTo(Math.exp(0.001 * 39), 6);
+  });
+
+  test('matches a centred reference growth rate on noisy data at epoch scale', () => {
+    const points = [];
+    const fitter = new ExponentialFitter();
+    let seed = 7;
+    for (let index = 0; index < 500; index++) {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      const noise = seed / 2147483648 - 0.5;
+      const x = T0 + index * 1000;
+      const y = 100 * Math.exp(0.0005 * index) * (1 + 0.02 * noise);
+      points.push([x, y]);
+      fitter.add(x, y);
+    }
+
+    expect(fitter.growthRate()).toBeCloseTo(referenceGrowthRate(points), 15);
+  });
+
+  test('reports a perfect fit for an exact exponential at epoch scale', () => {
+    const fitter = fitSeries(40, 1000, (index) => 100 * Math.exp(0.0005 * index));
+
+    expect(fitter.correlation()).toBeCloseTo(1, 9);
+  });
+
+  test('still returns 0 for extrapolations past the overflow limit', () => {
+    const fitter = fitSeries(3, 1000, (index) => 100 * Math.exp(0.0005 * index));
+
+    // b * (x - meanx) = 5e-7 * 2e9 = 1000, past the 500 limit
+    expect(fitter.f(T0 + 2e9)).toBe(0);
+    // ... but a short extrapolation is still finite and sane
+    expect(fitter.f(T0 + 60_000)).toBeGreaterThan(0);
+  });
+});
