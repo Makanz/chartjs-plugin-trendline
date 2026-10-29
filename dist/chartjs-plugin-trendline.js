@@ -55,6 +55,17 @@
             super();
             this.sumy = 0;
             this.sumxy = 0;
+
+            // Running (Welford) moments about the mean. These are what the
+            // coefficients are computed from: the textbook sums above lose all
+            // significance when x is large (epoch milliseconds) while the spread is
+            // small, because `count * sumx2 - sumx * sumx` subtracts two nearly equal
+            // ~1e30 numbers to get a ~1e10 result.
+            this._meanx = 0;
+            this._meany = 0;
+            this._m2x = 0;
+            this._cxy = 0;
+
             this._cachedSlope = null;
             this._cachedIntercept = null;
         }
@@ -68,6 +79,14 @@
             super.add(x);
             this.sumy += y;
             this.sumxy += x * y;
+
+            const count = this.count;
+            const deltaX = x - this._meanx;
+            this._meanx += deltaX / count;
+            const deltaY = y - this._meany;
+            this._meany += deltaY / count;
+            this._m2x += deltaX * (x - this._meanx);
+            this._cxy += deltaX * (y - this._meany);
         }
 
         /**
@@ -130,22 +149,23 @@
                 return;
             }
 
-            const denominator = this.count * this.sumx2 - this.sumx * this.sumx;
-
-            // Degenerate input: every x is identical (denominator exactly 0), or the
-            // values are so large that the subtraction cancels out. Fall back to a
-            // horizontal line through the mean y instead of returning NaN, which
-            // made the trendline silently disappear.
-            const magnitude = Math.abs(this.count * this.sumx2) + Math.abs(this.sumx * this.sumx);
-            if (Math.abs(denominator) <= magnitude * 1e-12) {
+            // Degenerate input: every x is identical, so there is no x spread to
+            // regress on. Fall back to a horizontal line through the mean y instead
+            // of returning NaN, which made the trendline silently disappear.
+            //
+            // The test is on the centred sum of squares (`_m2x`), not on a tolerance
+            // against the magnitude of `count * sumx2`: only an actually constant x
+            // is degenerate. A spread that merely looks small next to the epochs it
+            // is measured in is a real trend, and must keep its slope.
+            if (!(this._m2x > 0)) {
                 this._cachedSlope = 0;
-                this._cachedIntercept = this.sumy / this.count;
+                this._cachedIntercept = this._meany;
                 this._cacheValid = true;
                 return;
             }
 
-            this._cachedSlope = (this.count * this.sumxy - this.sumx * this.sumy) / denominator;
-            this._cachedIntercept = (this.sumy - this._cachedSlope * this.sumx) / this.count;
+            this._cachedSlope = this._cxy / this._m2x;
+            this._cachedIntercept = this._meany - this._cachedSlope * this._meanx;
             this._cacheValid = true;
         }
     }

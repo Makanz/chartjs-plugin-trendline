@@ -363,3 +363,82 @@ describe('LineFitter - degenerate input', () => {
     expect(Number.isFinite(fitter.slope())).toBe(true); // currently NaN -> fails
   });
 });
+
+/**
+ * Precision on real time scales. Epoch-millisecond x values make
+ * `count * sumx2 - sumx * sumx` subtract two nearly equal ~1e30 numbers to get
+ * the ~1e10 result the slope needs, so an uncentred sum loses every digit. A
+ * degenerate-input guard keyed on that magnitude then reports slope 0 for a
+ * perfectly ordinary rising series, and the trendline is drawn flat.
+ */
+describe('LineFitter - large x offsets (time scales)', () => {
+  const T0 = Date.UTC(2026, 0, 1);
+
+  const fitSeries = (length, stepMs, yOf) => {
+    const fitter = new LineFitter();
+    for (let index = 0; index < length; index++) {
+      fitter.add(T0 + index * stepMs, yOf(index));
+    }
+    return fitter;
+  };
+
+  const referenceSlope = (points) => {
+    const count = points.length;
+    const meanX = points.reduce((sum, [x]) => sum + x, 0) / count;
+    const meanY = points.reduce((sum, [, y]) => sum + y, 0) / count;
+    let numerator = 0;
+    let denominator = 0;
+    for (const [x, y] of points) {
+      const dx = x - meanX;
+      numerator += dx * (y - meanY);
+      denominator += dx * dx;
+    }
+    return { slope: numerator / denominator, meanX, meanY };
+  };
+
+  test.each([
+    ['5 points, 1 s apart', 5, 1000],
+    ['40 points, 1 s apart', 40, 1000],
+    ['100 points, 1 min apart', 100, 60_000],
+    ['1000 points, 1 s apart', 1000, 1000],
+  ])('keeps the slope of a rising series: %s', (_name, length, stepMs) => {
+    const fitter = fitSeries(length, stepMs, (index) => 100 + 3 * index);
+
+    expect(fitter.slope()).toBeCloseTo(3 / stepMs, 12);
+    expect(fitter.f(T0)).toBeCloseTo(100, 6);
+    expect(fitter.f(T0 + (length - 1) * stepMs)).toBeCloseTo(100 + 3 * (length - 1), 6);
+  });
+
+  test('matches a centred reference on noisy data at epoch scale', () => {
+    const points = [];
+    for (let index = 0; index < 500; index++) {
+      points.push([T0 + index * 1000, 50 + index * 0.25 + ((index * 37) % 11) - 5]);
+    }
+
+    const fitter = new LineFitter();
+    points.forEach(([x, y]) => fitter.add(x, y));
+
+    const reference = referenceSlope(points);
+    expect(fitter.slope()).toBeCloseTo(reference.slope, 12);
+    expect(fitter.intercept()).toBeCloseTo(reference.meanY - reference.slope * reference.meanX, 3);
+  });
+
+  test('keeps a slope for two timestamps one millisecond apart', () => {
+    const fitter = new LineFitter();
+    fitter.add(T0, 10);
+    fitter.add(T0 + 1, 30);
+
+    expect(fitter.slope()).toBeCloseTo(20, 9);
+    expect(fitter.f(T0)).toBeCloseTo(10, 6);
+  });
+
+  test('a constant x is still degenerate, not a huge slope', () => {
+    const fitter = new LineFitter();
+    fitter.add(T0, 10);
+    fitter.add(T0, 30);
+    fitter.add(T0, 20);
+
+    expect(fitter.slope()).toBe(0);
+    expect(fitter.intercept()).toBe(20);
+  });
+});
