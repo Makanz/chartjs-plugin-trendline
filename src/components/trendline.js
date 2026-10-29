@@ -282,8 +282,15 @@ const getCachedFitter = (fitCache, dataset, options) => {
  *   refitted on every animation frame. Cleared by the plugin on chart update.
  */
 export const addFitter = (datasetMeta, ctx, dataset, xScale, yScale, fitCache) => {
-    const yAxisID = dataset.yAxisID || 'y'; // Default to 'y' if no yAxisID is specified
-    const yScaleToUse = datasetMeta.controller.chart.scales[yAxisID] || yScale;
+    // Prefer the scale Chart.js bound the dataset to (linkScales stores it on
+    // the meta). A lookup by id misses whenever the user names their axis —
+    // `scales['y']` then resolves to the default scale Chart.js merges into
+    // every chart, which is not the one the data is plotted against, and the
+    // trendline ends up outside the chart area and is clipped away.
+    const yScaleToUse =
+        datasetMeta?.yScale ||
+        datasetMeta?.controller?.chart?.scales?.[dataset.yAxisID || 'y'] ||
+        yScale;
 
     // Determine if we're using exponential or linear trendline
     const isExponential = !!dataset.trendlineExponential;

@@ -162,11 +162,8 @@ describe('pluginTrendlineLinear.afterDatasetsDraw', () => {
     /**
      * Regression: a dataset bound to a non-default x axis must be fitted
      * against that axis. getScales() returns a single horizontal scale for the
-     * whole chart, so every dataset currently gets whichever horizontal scale
-     * was iterated last. yAxisID is honoured inside addFitter, xAxisID is not.
-     *
-     * test.failing = the suite stays green while the bug exists, and this test
-     * turns red as soon as the bug is fixed — then remove `.failing`.
+     * whole chart, so every dataset would otherwise get whichever horizontal
+     * scale was iterated last.
      */
     test('uses the scale from dataset.xAxisID when several x axes exist', () => {
         const chart = createChart({
@@ -185,5 +182,34 @@ describe('pluginTrendlineLinear.afterDatasetsDraw', () => {
 
         expect(addFitter.mock.calls[0][3]).toBe(chart.scales.x);
         expect(addFitter.mock.calls[1][3]).toBe(chart.scales.x2);
+    });
+
+    /**
+     * Regression: the x scale must be the one Chart.js bound the dataset to
+     * (meta.xScale), not a scale found by id. Chart.js merges a default `x`
+     * scale into every cartesian chart, so `scales['x']` exists even when the
+     * user named their axis `date` — and that default scale is not the one the
+     * dataset is plotted against, so the trendline is mapped to the wrong pixels.
+     */
+    test('uses the scale Chart.js bound to the dataset, not a scale named "x"', () => {
+        const bound = { id: 'date', axis: 'x', isHorizontal: () => true };
+        const unusedDefault = { id: 'x', axis: 'x', isHorizontal: () => true };
+        const chart = {
+            ctx,
+            data: {
+                datasets: [{ label: 'a', data: [1, 2], trendlineLinear: {} }],
+            },
+            scales: {
+                date: bound,
+                y: { id: 'y', axis: 'y', isHorizontal: () => false },
+                x: unusedDefault,
+            },
+            isDatasetVisible: () => true,
+            getDatasetMeta: jest.fn(() => ({ datasetIndex: 0, xScale: bound })),
+        };
+
+        pluginTrendlineLinear.afterDatasetsDraw(chart);
+
+        expect(addFitter.mock.calls[0][3]).toBe(bound);
     });
 });
