@@ -177,6 +177,19 @@ class ExponentialFitter extends BaseFitter {
         this.sumxlny = 0;
         this.hasValidData = true;
         this.sumlny2 = 0;
+
+        // Running (Welford) moments about the mean, for x and ln(y). The
+        // textbook sums cancel away every significant digit once x is an
+        // epoch-millisecond value: on a time scale the spread over seconds or
+        // minutes is about 1e-6 of the magnitude of x, so `count * sumx2 -
+        // sumx * sumx` subtracts two nearly equal ~1e30 numbers. LineFitter
+        // keeps the same moments for the same reason.
+        this._meanx = 0;
+        this._meanlny = 0;
+        this._m2x = 0;
+        this._cxy = 0;
+        this._m2lny = 0;
+
         this._cachedGrowthRate = null;
         this._cachedCoefficient = null;
         this._cachedCorrelation = null;
@@ -203,6 +216,15 @@ class ExponentialFitter extends BaseFitter {
         this.sumlny += lny;
         this.sumxlny += x * lny;
         this.sumlny2 += lny * lny;
+
+        const count = this.count;
+        const deltaX = x - this._meanx;
+        this._meanx += deltaX / count;
+        const deltaLny = lny - this._meanlny;
+        this._meanlny += deltaLny / count;
+        this._m2x += deltaX * (x - this._meanx);
+        this._cxy += deltaX * (lny - this._meanlny);
+        this._m2lny += deltaLny * (lny - this._meanlny);
     }
 
     /**
@@ -239,11 +261,16 @@ class ExponentialFitter extends BaseFitter {
         if (!this._cacheValid) {
             this._computeCoefficients();
         }
-        
-        // Check for potential overflow before calculation
-        if (Math.abs(this._cachedGrowthRate * x) > 500) return 0; // Safer limit to prevent overflow
-        
-        const result = this._cachedCoefficient * Math.exp(this._cachedGrowthRate * x);
+
+        // Evaluate about the mean x rather than as a * e^(b*x): with an
+        // epoch-millisecond x, b * x is ~1e4 even though the curve only spans a
+        // few percent, so the absolute form trips the guard below on ordinary
+        // data and exp(ln a) has underflowed to 0 by the time it is multiplied.
+        // b * (x - meanx) is the size of the curve, whatever the magnitude of x.
+        const exponent = this._cachedGrowthRate * (x - this._meanx);
+        if (!isFinite(exponent) || Math.abs(exponent) > 500) return 0; // Safer limit to prevent overflow
+
+        const result = Math.exp(this._meanlny + exponent);
         return isFinite(result) ? result : 0;
     }
 
@@ -276,33 +303,32 @@ class ExponentialFitter extends BaseFitter {
             return;
         }
 
-        const denominator = this.count * this.sumx2 - this.sumx * this.sumx;
-        if (Math.abs(denominator) < 1e-10) {
+        // Degenerate input: every x is identical, so there is no x spread to
+        // regress on. Fall back to the constant that least squares in log space
+        // gives for b = 0 — the geometric mean of y — instead of dividing by
+        // zero. Detected on the centred sum of squares, where it is exact.
+        if (!(this._m2x > 0)) {
             this._cachedGrowthRate = 0;
-            this._cachedCoefficient = 1;
+            this._cachedCoefficient = Math.exp(this._meanlny);
             this._cachedCorrelation = 0;
             this._cacheValid = true;
             return;
         }
 
-        this._cachedGrowthRate = (this.count * this.sumxlny - this.sumx * this.sumlny) / denominator;
-        const lnA = (this.sumlny - this._cachedGrowthRate * this.sumx) / this.count;
+        this._cachedGrowthRate = this._cxy / this._m2x;
+        // The y-intercept at x = 0, which is what the y = a * e^(b*x) contract
+        // asks for. On an epoch-millisecond axis it underflows to 0; that is the
+        // correctly rounded answer, and f() no longer multiplies by it.
+        const lnA = this._meanlny - this._cachedGrowthRate * this._meanx;
         this._cachedCoefficient = Math.exp(lnA);
 
-        // R^2 computed from running sums instead of a stored copy of every
-        // point, which allocated one object per data point per fit:
-        //   ssTotal = sum((lnY - mean)^2) = sumlnY2 - sumlny^2 / n
-        //   ssRes   = sum((lnY - lnA - b*x)^2), expanded analytically
-        const n = this.count;
-        const b = this._cachedGrowthRate;
-        const ssTotal = this.sumlny2 - (this.sumlny * this.sumlny) / n;
+        // R^2 from the centred moments, so it does not inherit the cancellation
+        // of the uncentred sums:
+        //   ssTotal = sum((lnY - mean)^2) = _m2lny
+        //   ssRes   = sum((lnY - lnA - b*x)^2) = _m2lny - b^2 * _m2x
+        const ssTotal = this._m2lny;
         const ssRes =
-            this.sumlny2 -
-            2 * lnA * this.sumlny -
-            2 * b * this.sumxlny +
-            n * lnA * lnA +
-            2 * lnA * b * this.sumx +
-            b * b * this.sumx2;
+            this._m2lny - this._cachedGrowthRate * this._cachedGrowthRate * this._m2x;
 
         this._cachedCorrelation = ssTotal === 0 ? 1 : Math.max(0, 1 - ssRes / ssTotal);
         this._cacheValid = true;
