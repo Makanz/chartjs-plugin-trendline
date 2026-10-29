@@ -1,7 +1,7 @@
 # chartjs-plugin-trendline
 
 This plugin draws linear and exponential trendlines in your Chart.
-It has been tested with Chart.js version 4.4.9.
+It has been tested with Chart.js version 4.6.1.
 
 ## 📊 [View Live Examples](https://makanz.github.io/chartjs-plugin-trendline/)
 
@@ -42,7 +42,7 @@ Chart.register(ChartJSTrendline);
 Load Chart.js first, then the plugin which will automatically register itself:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
 ```
 
