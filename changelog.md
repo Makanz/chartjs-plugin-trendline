@@ -1,4 +1,4 @@
-# Unreleased
+# Changelog 3.3.0
 
 ### Performance
 - The regression fit is now cached per chart update instead of being recomputed on every animation frame (`afterDatasetsDraw` runs ~60 times per second during an animation). Measured with 10 000 points per dataset: **3.20 ms → 0.003 ms per frame** for time-scale label data and **0.22 ms → 0.012 ms** for numeric data
