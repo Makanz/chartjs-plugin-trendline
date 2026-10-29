@@ -484,6 +484,39 @@ describe('addFitter', () => {
         expect(drawingUtils.drawTrendline).toHaveBeenCalled();
         expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled(); // No label should be added
     });
+
+    /**
+     * Regression: the y scale must be the one Chart.js bound the dataset to
+     * (meta.yScale), not a scale found by id. Chart.js merges a default `y`
+     * scale into every cartesian chart, so `scales['y']` resolves even when the
+     * user named their axis `count` — and that default scale is not the one the
+     * data is plotted against, so the trendline is mapped outside the chart
+     * area and clipped away entirely.
+     */
+    test('uses the y scale Chart.js bound to the dataset, not a scale named "y"', () => {
+        const bound = {
+            id: 'count',
+            axis: 'y',
+            getPixelForValue: jest.fn((value) => value * 10),
+            getValueForPixel: jest.fn((pixel) => pixel / 10),
+        };
+        const unusedDefault = {
+            id: 'y',
+            axis: 'y',
+            getPixelForValue: jest.fn(() => 9999),
+            getValueForPixel: jest.fn(() => 9999),
+        };
+        mockDatasetMeta.yScale = bound;
+        mockDatasetMeta.controller.chart.scales = { y: unusedDefault };
+        mockLineFitterInstance.minx = 10;
+        mockLineFitterInstance.maxx = 30;
+        mockLineFitterInstance.count = 3;
+
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
+
+        expect(bound.getPixelForValue).toHaveBeenCalled();
+        expect(unusedDefault.getPixelForValue).not.toHaveBeenCalled();
+    });
 });
 
 describe('collectDataPoints', () => {

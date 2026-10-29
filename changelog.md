@@ -13,9 +13,10 @@
 - `beforeInit` no longer throws when the legend is disabled (`plugins.legend.display: false`) or absent
 - Datasets are now fitted and drawn against the x scale Chart.js bound them to (`datasetMeta.xScale`) instead of one looked up by id. A chart that names its axis — `scales: { date: { type: 'time' } }` — had the trendline mapped through the default `x` scale Chart.js merges into every cartesian chart, so the line landed on the wrong pixels or was clipped away entirely. The same lookup also mis-fit datasets bound to a second horizontal axis
 - `fo()` returns `NaN` for horizontal lines instead of `-Infinity`
+- The y axis had the same lookup by id (`scales[dataset.yAxisID || 'y']`). A chart whose y axis is named anything but `y` lost its trendline completely, because the default `y` scale it resolved to is unscaled and the line fell outside the chart area
 
 ### Testing
-- Coverage: 91.78 % → 98.6 % statements, 82.14 % → 93.3 % branches, 88.67 % → 100 % functions (167 → 207 tests)
+- Coverage: 91.78 % → 98.6 % statements, 82.14 % → 93.4 % branches, 88.67 % → 100 % functions (167 → 216 tests)
 
 # Changelog 3.2.14
 
