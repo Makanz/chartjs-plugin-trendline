@@ -5,7 +5,7 @@
 - Dataset draw ordering is cached for the same reason
 - Skips the gradient when `colorMin === colorMax` (the default when only one colour is configured) — one less `createLinearGradient` and two less `addColorStop` calls per dataset per frame
 - Time-scale parsing no longer allocates a `Date` per point when the value is already a number, and the scale-type lookup is hoisted out of the per-point loop
-- `ExponentialFitter` computes R² from running sums instead of storing a copy of every data point
+- `ExponentialFitter` computes R² from the centred moments instead of storing a copy of every data point
 
 ### Bug Fixes
 - `LineFitter` no longer returns `NaN` when every x value is identical (two points sharing a timestamp, for example). It degrades to a horizontal line through the mean y, so the trendline is drawn instead of silently disappearing
@@ -14,9 +14,11 @@
 - Datasets are now fitted and drawn against the x scale Chart.js bound them to (`datasetMeta.xScale`) instead of one looked up by id. A chart that names its axis — `scales: { date: { type: 'time' } }` — had the trendline mapped through the default `x` scale Chart.js merges into every cartesian chart, so the line landed on the wrong pixels or was clipped away entirely. The same lookup also mis-fit datasets bound to a second horizontal axis
 - `fo()` returns `NaN` for horizontal lines instead of `-Infinity`
 - The y axis had the same lookup by id (`scales[dataset.yAxisID || 'y']`). A chart whose y axis is named anything but `y` lost its trendline completely, because the default `y` scale it resolved to is unscaled and the line fell outside the chart area
+- `ExponentialFitter` no longer loses the fit on a time axis. It computed the growth rate from uncentred sums, which cancelled the same way `LineFitter` did — 80 % error at 1 s spacing, 100 % on a five-point series — and `f()` evaluated `a * e^(b*x)` behind an absolute `|b * x| > 500` guard. With an epoch-millisecond x that guard fires on an ordinary curve, so every point came back as 0 and the trendline was never drawn. Both now work from running centred sums about the mean x, the same approach `LineFitter` takes
+- The all-x-equal fallback in `ExponentialFitter` returns the geometric mean of y — the b = 0 least-squares fit in log space — instead of drawing y = 1
 
 ### Testing
-- Coverage: 91.78 % → 98.6 % statements, 82.14 % → 93.4 % branches, 88.67 % → 100 % functions (167 → 216 tests)
+- Coverage: 91.78 % → 98.6 % statements, 82.14 % → 93.4 % branches, 88.67 % → 100 % functions (167 → 224 tests)
 
 # Changelog 3.2.14
 
