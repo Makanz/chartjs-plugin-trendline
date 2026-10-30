@@ -21,6 +21,7 @@
   - `example/fillAndToggle.html` — `fillColor`, and `alwaysShowTrendline` when the series is hidden in the legend
   - `example/slopeAndOffset.html` — `percentage` on a unit-bearing x axis, and `trendoffset` on a plain number array
 - README documents `fillColor` and the dataset-level `alwaysShowTrendline` / `order`
+- Every example's navigation now follows the order of `index.html` and uses the card titles as link labels. The two exponential pages could not be reached by walking the links, and `scatterProjection.html` and `exponentialLinearAxis.html` had no way forward. The three pages that styled their links inline now use the shared `.nav-links` class
 
 # Changelog 3.3.0
 

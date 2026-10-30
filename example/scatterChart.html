@@ -62,6 +62,24 @@
       border-radius: 3px;
       font-family: 'Monaco', 'Menlo', monospace;
     }
+    .nav-links {
+        text-align: center;
+        margin-top: 30px;
+    }
+    .nav-links a {
+        display: inline-block;
+        margin: 0 10px;
+        padding: 10px 20px;
+        background: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+    .nav-links a:hover {
+        background: #2980b9;
+    }
   </style>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -162,10 +180,10 @@
       </ul>
     </div>
 
-    <div style="text-align: center; margin-top: 30px;">
-      <a href="../index.html" style="display: inline-block; margin: 0 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">← Back to Examples</a>
-      <a href="lineChartTypeTime.html" style="display: inline-block; margin: 0 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">← Time Series Line Chart</a>
-      <a href="scatterProjection.html" style="display: inline-block; margin: 0 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">Scatter Projection →</a>
+    <div class="nav-links">
+        <a href="../index.html">← Back to Examples</a>
+        <a href="lineChartTypeTime.html">← Time Series Line Chart</a>
+        <a href="scatterProjection.html">→ Scatter Projection</a>
     </div>
   </div>
 </body>
