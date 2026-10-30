@@ -1,4 +1,4 @@
-# Changelog 3.4.0
+# Changelog 3.3.1
 
 ### Bug Fixes
 - Exponential trendlines are drawn as the fitted curve instead of a straight chord between the first and last point. `y = a × e^(b×x)` is only a straight line on a logarithmic y axis; on a linear axis the old drawing cut across the fit — `2^x` over x = 0–10 passed through 512 at x = 5 instead of 32
