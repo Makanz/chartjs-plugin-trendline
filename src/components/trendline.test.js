@@ -1,4 +1,11 @@
-import { addFitter, collectDataPoints, calculateProjectedCoordinates } from './trendline.js';
+import {
+    addFitter,
+    collectDataPoints,
+    calculateProjectedCoordinates,
+    sampleExponentialPath,
+    clipPolylineToArea,
+    EXPONENTIAL_CURVE_SEGMENTS,
+} from './trendline.js';
 import 'jest-canvas-mock';
 
 import { LineFitter } from '../utils/lineFitter.js';
@@ -10,7 +17,9 @@ jest.mock('../utils/lineFitter');
 jest.mock('../utils/exponentialFitter');
 jest.mock('../utils/drawing', () => ({
   drawTrendline: jest.fn(),
+  drawTrendlinePath: jest.fn(),
   fillBelowTrendline: jest.fn(),
+  fillBelowTrendlinePath: jest.fn(),
   setLineStyle: jest.fn(),
 }));
 jest.mock('./label', () => ({ addTrendlineLabel: jest.fn() }));
@@ -742,34 +751,41 @@ describe('addFitter - Exponential Trendlines', () => {
         mockExponentialFitterInstance.minx = 0;
         mockExponentialFitterInstance.maxx = 2;
         mockExponentialFitterInstance.count = 3;
-        mockExponentialFitterInstance.f = jest.fn(x => {
-            if (x === 0) return 2;
-            if (x === 2) return 5.4;
-            return 2 * Math.exp(0.5 * x);
-        });
-        
+        mockExponentialFitterInstance.f = jest.fn(x => 2 * Math.exp(0.5 * x));
+
         mockXScale.getPixelForValue = jest.fn(val => {
             if (val === 0) return 50;
             if (val === 2) return 250;
             return val * 100 + 50;
         });
-        
-        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => {
-            if (val === 2) return 200;
-            if (val === 5.4) return 340;
-            return val * 100;
-        });
-        
+
+        // y = 2 at x = 0 → 160 px, y = 2e at x = 2 → 297.5 px. The whole curve
+        // stays inside the chart area (top 50, bottom 450).
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => 80 + val * 40);
+
         addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
-        
+
         expect(ExponentialFitter).toHaveBeenCalledTimes(1);
         expect(mockExponentialFitterInstance.add).toHaveBeenCalledTimes(3);
         expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(0, 2);
         expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(1, 3.3);
         expect(mockExponentialFitterInstance.add).toHaveBeenCalledWith(2, 5.4);
-        expect(drawingUtils.drawTrendline).toHaveBeenCalledWith(expect.objectContaining({
-            x1: 50, y1: 200, x2: 250, y2: 340
-        }));
+
+        // An exponential fit is a curve: it must be sampled, not drawn as the
+        // chord between its endpoints.
+        expect(drawingUtils.drawTrendline).not.toHaveBeenCalled();
+        expect(drawingUtils.drawTrendlinePath).toHaveBeenCalledTimes(1);
+
+        const { polylines } = drawingUtils.drawTrendlinePath.mock.calls[0][0];
+        expect(polylines).toHaveLength(1);
+        expect(polylines[0][0]).toEqual({ x: 50, y: 160 });
+        expect(polylines[0][polylines[0].length - 1].x).toBe(250);
+        expect(polylines[0][polylines[0].length - 1].y).toBeCloseTo(297.46, 2);
+        expect(polylines[0].length).toBe(EXPONENTIAL_CURVE_SEGMENTS + 1);
+
+        // The midpoint follows the curve, not the chord: at x = 1 the fit is
+        // 2e^0.5 ≈ 3.297 → 211.9 px, while the chord midpoint would be ~228.7.
+        expect(polylines[0][EXPONENTIAL_CURVE_SEGMENTS / 2].y).toBeCloseTo(211.9, 1);
     });
 
     test('Exponential trendline with label showing coefficient and growth rate', () => {
@@ -816,10 +832,11 @@ describe('addFitter - Exponential Trendlines', () => {
         mockDatasetMeta.controller.chart.scales.y.getValueForPixel = jest.fn(pixel => pixel / 100);
         
         addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
-        
-        // Just verify that projection mode calls the boundary functions
+
+        // Projection samples the curve across the chart area, not the data range
         expect(mockXScale.getValueForPixel).toHaveBeenCalledWith(50); // left boundary
         expect(mockXScale.getValueForPixel).toHaveBeenCalledWith(750); // right boundary
+        expect(drawingUtils.drawTrendlinePath).toHaveBeenCalledTimes(1);
     });
 
     test('Exponential trendline with fill color', () => {
@@ -839,14 +856,13 @@ describe('addFitter - Exponential Trendlines', () => {
         
         addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
         
-        expect(drawingUtils.fillBelowTrendline).toHaveBeenCalledWith(
-            mockCtx,
-            expect.any(Number), // x1
-            expect.any(Number), // y1
-            expect.any(Number), // x2
-            expect.any(Number), // y2
-            mockDatasetMeta.controller.chart.chartArea.bottom,
-            'rgba(255,0,0,0.2)'
+        expect(drawingUtils.fillBelowTrendline).not.toHaveBeenCalled();
+        expect(drawingUtils.fillBelowTrendlinePath).toHaveBeenCalledWith(
+            expect.objectContaining({
+                ctx: mockCtx,
+                drawBottom: mockDatasetMeta.controller.chart.chartArea.bottom,
+                fillColor: 'rgba(255,0,0,0.2)',
+            })
         );
     });
 
@@ -949,8 +965,27 @@ describe('addFitter - Exponential Trendlines', () => {
         addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale);
         
         expect(drawingUtils.setLineStyle).toHaveBeenCalledWith(mockCtx, 'dashed');
-        expect(drawingUtils.drawTrendline).toHaveBeenCalled();
+        expect(drawingUtils.drawTrendlinePath).toHaveBeenCalled();
         expect(labelUtils.addTrendlineLabel).not.toHaveBeenCalled();
+    });
+
+    test('samples the curve once per update, not once per animation frame', () => {
+        mockDatasetMeta.data = [{x:0, y:1}];
+        mockExponentialFitterInstance.minx = 0;
+        mockExponentialFitterInstance.maxx = 2;
+        mockExponentialFitterInstance.count = 2;
+        mockExponentialFitterInstance.f = jest.fn(x => 2 * Math.exp(0.5 * x));
+        // Keep the whole curve inside the chart area (left 50, right 750,
+        // top 50, bottom 450) so it is drawn on both frames.
+        mockXScale.getPixelForValue = jest.fn(val => 50 + val * 100);
+        mockDatasetMeta.controller.chart.scales.y.getPixelForValue = jest.fn(val => 100 + val * 10);
+
+        const fitCache = new Map();
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale, fitCache);
+        addFitter(mockDatasetMeta, mockCtx, mockDataset, mockXScale, mockYScale, fitCache);
+
+        expect(mockExponentialFitterInstance.f).toHaveBeenCalledTimes(EXPONENTIAL_CURVE_SEGMENTS + 1);
+        expect(drawingUtils.drawTrendlinePath).toHaveBeenCalledTimes(2);
     });
 });
 
@@ -977,7 +1012,7 @@ describe('calculateProjectedCoordinates', () => {
                 f: jest.fn(x => x * 2 + 5), // f(10)=25, f(30)=65
             };
             const result = calculateProjectedCoordinates(
-                fitter, false, { projection: false },
+                fitter, { projection: false },
                 mockXScale, mockYScale, chartArea
             );
             expect(fitter.f).toHaveBeenCalledWith(10);
@@ -999,7 +1034,7 @@ describe('calculateProjectedCoordinates', () => {
                 f: jest.fn(x => 100 - x),
             };
             calculateProjectedCoordinates(
-                fitter, true, { projection: false },
+                fitter, { projection: false },
                 mockXScale, mockYScale, chartArea
             );
             expect(fitter.f).toHaveBeenCalledTimes(2);
@@ -1011,43 +1046,6 @@ describe('calculateProjectedCoordinates', () => {
     });
 
     describe('projection mode (trendlineConfig.projection = true)', () => {
-        describe('exponential', () => {
-            test('generates points from chartArea edges using xScale.getValueForPixel and fitter.f()', () => {
-                const fitter = {
-                    f: jest.fn(x => 20 + x * 0.1), // f(10)=21, f(110)=31 — both within y bounds [-250, 50]
-                };
-                const result = calculateProjectedCoordinates(
-                    fitter, true, { projection: true },
-                    mockXScale, mockYScale, chartArea
-                );
-                // chart area: left=0 → x=10, right=50 → x=110
-                expect(mockXScale.getValueForPixel).toHaveBeenCalledWith(0);
-                expect(mockXScale.getValueForPixel).toHaveBeenCalledWith(50);
-                expect(fitter.f).toHaveBeenCalledWith(10);  // value at left
-                expect(fitter.f).toHaveBeenCalledWith(110); // value at right
-                // result should be valid pixel coords
-                expect(result.x1_px).toBeDefined();
-                expect(result.y1_px).toBeDefined();
-                expect(result.x2_px).toBeDefined();
-                expect(result.y2_px).toBeDefined();
-                expect(isFinite(result.x1_px)).toBe(true);
-                expect(isFinite(result.y1_px)).toBe(true);
-            });
-
-            test('does not call fitter.slope() or fitter.intercept()', () => {
-                const fitter = {
-                    f: jest.fn(() => 42),
-                };
-                calculateProjectedCoordinates(
-                    fitter, true, { projection: true },
-                    mockXScale, mockYScale, chartArea
-                );
-                // No slope/intercept for exponential
-                expect(fitter.slope).toBeUndefined();
-                expect(fitter.intercept).toBeUndefined();
-            });
-        });
-
         describe('linear with positive slope', () => {
             test('calculates coordinates using slope/intercept intersection with chart area', () => {
                 const fitter = {
@@ -1056,7 +1054,7 @@ describe('calculateProjectedCoordinates', () => {
                     f: jest.fn(x => 2 * x + 10),
                 };
                 const result = calculateProjectedCoordinates(
-                    fitter, false, { projection: true },
+                    fitter, { projection: true },
                     mockXScale, mockYScale, chartArea
                 );
                 // slope=2, intercept=10
@@ -1091,7 +1089,7 @@ describe('calculateProjectedCoordinates', () => {
                     f: jest.fn(x => 25), // f(10)=25, f(110)=25
                 };
                 const result = calculateProjectedCoordinates(
-                    fitter, false, { projection: true },
+                    fitter, { projection: true },
                     mockXScale, mockYScale, chartArea
                 );
                 // slope=0 -> enters the else branch (horizontal line)
@@ -1113,7 +1111,7 @@ describe('calculateProjectedCoordinates', () => {
                     f: jest.fn(x => -0.5 * x + 30),
                 };
                 const result = calculateProjectedCoordinates(
-                    fitter, false, { projection: true },
+                    fitter, { projection: true },
                     mockXScale, mockYScale, chartArea
                 );
                 // slope=-0.5 -> |slope| > 1e-6, enters slope/intercept branch
@@ -1140,17 +1138,19 @@ describe('calculateProjectedCoordinates', () => {
 
         describe('when not enough valid points', () => {
             test('returns NaN for all coordinates when fitter.f() returns Infinity', () => {
+                // A line far above the visible y range: both edge points are out
+                // of the area, so there is nothing to draw.
                 const fitter = {
-                    f: jest.fn(() => Infinity),
+                    slope: jest.fn(() => 1),
+                    intercept: jest.fn(() => 1000),
+                    minx: 10,
+                    maxx: 30,
+                    f: jest.fn(x => x + 1000),
                 };
                 const result = calculateProjectedCoordinates(
-                    fitter, true, { projection: true },
+                    fitter, { projection: true },
                     mockXScale, mockYScale, chartArea
                 );
-                // Exponential mode: fitter.f(10)=Infinity, fitter.f(110)=Infinity
-                // points: {x:10, y:Infinity}, {x:110, y:Infinity}
-                // filter: isFinite(p.y)=false -> both filtered out
-                // validPoints.length=0 < 2 -> else branch
                 expect(isNaN(result.x1_px)).toBe(true);
                 expect(isNaN(result.y1_px)).toBe(true);
                 expect(isNaN(result.x2_px)).toBe(true);
@@ -1205,7 +1205,7 @@ describe('calculateProjectedCoordinates', () => {
                     f: jest.fn(x => -5.4e-11 * x + 109.27),
                 };
                 const result = calculateProjectedCoordinates(
-                    fitter, false, { projection: true },
+                    fitter, { projection: true },
                     makeXScale(xMin, xMax), makeYScale(0, 18), tsChartArea
                 );
                 expect(fitter.slope).toHaveBeenCalled();
@@ -1232,7 +1232,7 @@ describe('calculateProjectedCoordinates', () => {
                     f: jest.fn(x => -8.02e-12 * x + 14.234),
                 };
                 const result = calculateProjectedCoordinates(
-                    fitter, false, { projection: true },
+                    fitter, { projection: true },
                     makeXScale(xMin, xMax), makeYScale(0, 1), tsChartArea
                 );
                 expect(fitter.slope).toHaveBeenCalled();
@@ -1254,7 +1254,7 @@ describe('calculateProjectedCoordinates', () => {
                     f: jest.fn(() => 15),
                 };
                 const result = calculateProjectedCoordinates(
-                    fitter, false, { projection: true },
+                    fitter, { projection: true },
                     makeXScale(xMin, xMax), makeYScale(0, 20), tsChartArea
                 );
                 // Horizontal line at y=15, within [0,20] -> should render
@@ -1359,5 +1359,97 @@ describe('addFitter - empty and out-of-area datasets', () => {
 
         expect(fitter.add).toHaveBeenCalledTimes(3);
         expect(drawingUtils.drawTrendline).not.toHaveBeenCalled();
+    });
+});
+
+describe('sampleExponentialPath', () => {
+    const chartArea = { top: 0, bottom: 100, left: 0, right: 100 };
+
+    // Identity scales: data values and pixels are the same number, so a point
+    // can be asserted against the fit directly.
+    const identityXScale = () => ({
+        getValueForPixel: jest.fn(pixel => pixel),
+        getPixelForValue: jest.fn(value => value),
+    });
+    const identityYScale = () => ({
+        getPixelForValue: jest.fn(value => value),
+    });
+
+    test('samples the fit between minx and maxx when not projecting', () => {
+        const fitter = { minx: 0, maxx: 10, f: jest.fn(x => 10 + x) };
+        const points = sampleExponentialPath(fitter, { projection: false }, identityXScale(), identityYScale(), chartArea);
+
+        expect(points).toHaveLength(EXPONENTIAL_CURVE_SEGMENTS + 1);
+        expect(points[0]).toEqual({ x: 0, y: 10 });
+        expect(points[points.length - 1]).toEqual({ x: 10, y: 20 });
+        // Every sample sits on the fit, not on the chord between the endpoints.
+        expect(points[EXPONENTIAL_CURVE_SEGMENTS / 2]).toEqual({ x: 5, y: 15 });
+    });
+
+    test('samples across the chart area when projecting', () => {
+        const fitter = { minx: 100, maxx: 200, f: jest.fn(x => x) };
+        const xScale = { getValueForPixel: jest.fn(pixel => pixel + 5), getPixelForValue: jest.fn(value => value) };
+
+        const points = sampleExponentialPath(fitter, { projection: true }, xScale, identityYScale(), chartArea);
+
+        expect(xScale.getValueForPixel).toHaveBeenCalledWith(chartArea.left);
+        expect(xScale.getValueForPixel).toHaveBeenCalledWith(chartArea.right);
+        expect(points[0].x).toBeCloseTo(5);
+        expect(points[points.length - 1].x).toBeCloseTo(105);
+    });
+
+    test('returns no points when the fit has no x range', () => {
+        const fitter = { minx: 5, maxx: 5, f: jest.fn(x => x) };
+        expect(sampleExponentialPath(fitter, { projection: false }, identityXScale(), identityYScale(), chartArea)).toEqual([]);
+    });
+
+    test('marks values the scale cannot place as breaks instead of bridging them', () => {
+        // A logarithmic axis has no pixel for zero or negative values.
+        const yScale = { getPixelForValue: jest.fn(value => (value > 0 ? value : NaN)) };
+        const fitter = { minx: 0, maxx: 10, f: jest.fn(x => x - 5) };
+
+        const points = sampleExponentialPath(fitter, { projection: false }, identityXScale(), yScale, chartArea);
+
+        expect(points.some(point => point === null)).toBe(true);
+        expect(points[points.length - 1].x).toBe(10);
+        expect(points[points.length - 1].y).toBe(5);
+    });
+});
+
+describe('clipPolylineToArea', () => {
+    const chartArea = { top: 0, bottom: 100, left: 0, right: 100 };
+
+    test('keeps a polyline that is entirely inside the area', () => {
+        const points = [{ x: 10, y: 10 }, { x: 50, y: 40 }, { x: 90, y: 70 }];
+        expect(clipPolylineToArea(points, chartArea)).toEqual([points]);
+    });
+
+    test('clips the parts that fall outside the area', () => {
+        const points = [{ x: -50, y: 50 }, { x: 50, y: 50 }, { x: 150, y: 50 }];
+
+        const polylines = clipPolylineToArea(points, chartArea);
+
+        expect(polylines).toHaveLength(1);
+        expect(polylines[0][0]).toEqual({ x: 0, y: 50 });
+        expect(polylines[0][polylines[0].length - 1]).toEqual({ x: 100, y: 50 });
+    });
+
+    test('drops a polyline that is entirely outside the area', () => {
+        const points = [{ x: 10, y: 150 }, { x: 90, y: 150 }];
+        expect(clipPolylineToArea(points, chartArea)).toEqual([]);
+    });
+
+    test('splits the path at a break instead of drawing across it', () => {
+        const points = [{ x: 10, y: 10 }, { x: 20, y: 20 }, null, { x: 80, y: 80 }, { x: 90, y: 90 }];
+
+        const polylines = clipPolylineToArea(points, chartArea);
+
+        expect(polylines).toHaveLength(2);
+        expect(polylines[0]).toEqual([{ x: 10, y: 10 }, { x: 20, y: 20 }]);
+        expect(polylines[1]).toEqual([{ x: 80, y: 80 }, { x: 90, y: 90 }]);
+    });
+
+    test('returns nothing for a single visible point', () => {
+        expect(clipPolylineToArea([null, { x: 50, y: 50 }, null], chartArea)).toEqual([]);
     });
 });

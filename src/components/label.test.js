@@ -122,3 +122,36 @@ describe('addTrendlineLabel', () => {
         expect(mockCtx.rotate).toHaveBeenCalledWith(currentAngle);
     });
 });
+
+describe('addTrendlineLabel - explicit anchor point', () => {
+    let mockCtx;
+
+    beforeEach(() => {
+        mockCtx = {
+            save: jest.fn(),
+            translate: jest.fn(),
+            rotate: jest.fn(),
+            fillText: jest.fn(),
+            measureText: jest.fn(() => ({ width: 100 })),
+            font: '',
+            fillStyle: '',
+            restore: jest.fn(),
+        };
+    });
+
+    test('places the label at x/y when a point on the line is given', () => {
+        addTrendlineLabel(mockCtx, {
+            label: 'Curve',
+            x: 120,
+            y: 40,
+            angle: -0.25,
+            labelColor: 'red',
+            family: 'Arial',
+            size: 12,
+            offset: 5,
+        });
+
+        expect(mockCtx.translate).toHaveBeenCalledWith(120, 40);
+        expect(mockCtx.rotate).toHaveBeenCalledWith(-0.25);
+    });
+});
