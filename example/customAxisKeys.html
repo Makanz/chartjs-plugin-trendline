@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Custom Axis Keys - Chart.js Trendline Plugin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="../dist/chartjs-plugin-trendline.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+        .info-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .nav-links a:hover {
+            background: #2980b9;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Custom Axis Keys</h1>
+        <p class="subtitle">Point the fit at your own field names instead of x and y</p>
+
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="signups-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Configuration Used</h3>
+            <p>
+                The data objects use <code>month</code> and <code>count</code>, not <code>x</code> and
+                <code>y</code>. Without the keys below, the fitter would read every point as missing.
+            </p>
+            <pre><code>trendlineLinear: {
+    xAxisKey: 'month',   // default: 'x'
+    yAxisKey: 'count',   // default: 'y'
+    colorMin: '#e74c3c',
+    width: 2,
+    lineStyle: 'dashed',
+    label: { text: 'Signups', display: true, displayValue: false },
+}</code></pre>
+            <ul>
+                <li><strong>Data shape:</strong> <code>{ month: '2025-01-01', count: 120 }</code>, one object per point</li>
+                <li><strong>Time axis:</strong> the x values are dates, so the chart loads the date-fns adapter</li>
+                <li><strong>displayValue: false:</strong> on a time axis the slope is per <em>millisecond</em>, which is not a number anyone wants to read. Convert the x values to days first if you need it</li>
+                <li><strong>parsing:</strong> Chart.js needs its own <code>parsing</code> to plot the points — the trendline keys do not affect the line itself. If you set <code>options.parsing</code> instead, the plugin falls back to those keys and the two options above can be left out</li>
+            </ul>
+        </div>
+
+        <div class="nav-links">
+            <a href="../index.html">← Back to Examples</a>
+            <a href="lineChartTypeTime.html">← Time Series Line Chart</a>
+            <a href="fillAndToggle.html">Fill and Toggle →</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const signups = [
+                { month: "2025-01-01", count: 120 },
+                { month: "2025-02-01", count: 138 },
+                { month: "2025-03-01", count: 131 },
+                { month: "2025-04-01", count: 160 },
+                { month: "2025-05-01", count: 172 },
+                { month: "2025-06-01", count: 169 },
+                { month: "2025-07-01", count: 195 },
+                { month: "2025-08-01", count: 211 },
+                { month: "2025-09-01", count: 206 },
+                { month: "2025-10-01", count: 238 },
+                { month: "2025-11-01", count: 251 },
+                { month: "2025-12-01", count: 274 },
+            ];
+
+            new Chart(document.getElementById("signups-chart"), {
+                type: "line",
+                data: {
+                    datasets: [
+                        {
+                            label: "New signups",
+                            data: signups,
+                            // Chart.js needs its own parsing to plot these points;
+                            // the trendline reads its keys from the config below.
+                            parsing: { xAxisKey: "month", yAxisKey: "count" },
+                            borderColor: "#3e95cd",
+                            backgroundColor: "rgba(62, 149, 205, 0.1)",
+                            pointRadius: 4,
+                            fill: false,
+                            trendlineLinear: {
+                                xAxisKey: "month",
+                                yAxisKey: "count",
+                                colorMin: "#e74c3c",
+                                width: 2,
+                                lineStyle: "dashed",
+                                label: {
+                                    text: "Signups",
+                                    display: true,
+                                    displayValue: false,
+                                    color: "#e74c3c",
+                                    offset: 10,
+                                },
+                            },
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "Signups per Month with a Fitted Trendline",
+                            font: { size: 16 },
+                        },
+                        legend: { display: false },
+                    },
+                    scales: {
+                        x: {
+                            type: "time",
+                            time: { unit: "month", tooltipFormat: "MMM yyyy" },
+                            title: { display: true, text: "Month" },
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: "Signups" },
+                        },
+                    },
+                },
+            });
+        });
+    </script>
+</body>
+</html>

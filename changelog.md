@@ -15,6 +15,12 @@
 - `example/barChart_label.html` no longer sets `percentage` on a category axis, where slope × 100 has no unit
 - `example/lineChartProjection.html` uses `dashdot` for its fourth dataset (it repeated `dotted`) and drops a stale comment about `lineStyle`
 - README: documents `legend.display` and `legend.color`, explains `label.percentage`, and lists every example
+- README: `trendoffset` said a negative value "uses the last n elements"; the code excludes them. Corrected in both config blocks
+- New examples for options that had none:
+  - `example/customAxisKeys.html` — `xAxisKey` / `yAxisKey` on `{month, count}` data with a time axis
+  - `example/fillAndToggle.html` — `fillColor`, and `alwaysShowTrendline` when the series is hidden in the legend
+  - `example/slopeAndOffset.html` — `percentage` on a unit-bearing x axis, and `trendoffset` on a plain number array
+- README documents `fillColor` and the dataset-level `alwaysShowTrendline` / `order`
 
 # Changelog 3.3.0
 
