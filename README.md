@@ -66,7 +66,8 @@ For linear trendlines (straight lines), use the `trendlineLinear` configuration:
 		xAxisKey: string, // optional
 		yAxisKey: string, // optional
 		projection: boolean, // optional
-		trendoffset: number, // optional, if > 0 skips first n elements, if < 0 uses last n elements
+		fillColor: Color, // optional, fills between the trendline and the bottom of the chart area
+		trendoffset: number, // optional, if > 0 skips the first n elements, if < 0 excludes the last n
 		// optional
 		label: {
 			color: Color,
@@ -109,7 +110,8 @@ For exponential trendlines (curves of the form y = a × e^(b×x)), use the `tren
 		xAxisKey: string, // optional
 		yAxisKey: string, // optional
 		projection: boolean, // optional
-		trendoffset: number, // optional, if > 0 skips first n elements, if < 0 uses last n elements
+		fillColor: Color, // optional, fills between the trendline and the bottom of the chart area
+		trendoffset: number, // optional, if > 0 skips the first n elements, if < 0 excludes the last n
 		// optional
 		label: {
 			color: Color,
@@ -146,6 +148,21 @@ linear axis as well as on a logarithmic one (where the curve is a straight line)
 All samples are taken from valid points with y > 0; non-positive values are
 ignored by the fit.
 
+### Dataset-level options
+
+These sit on the dataset, next to `data` and `label`, not inside the trendline config:
+
+```javascript
+{
+	data: [...],
+	alwaysShowTrendline: true, // keep the trendline when the dataset is hidden from the legend
+	order: number,             // draw order; 0 draws last, on top of the others
+}
+```
+
+`order` also orders the trendlines themselves, so a dataset that draws on top has its
+trendline drawn on top.
+
 ## Examples
 
 - [Linear Trendline Example](./example/lineChart.html) — labels, legend entries and gradients
@@ -158,6 +175,9 @@ ignored by the fit.
 - [Time Series Line Chart](./example/lineChartTypeTime.html) — a time scale
 - [Scatter Chart with Trendline](./example/scatterChart.html)
 - [Scatter Projection](./example/scatterProjection.html)
+- [Custom Axis Keys](./example/customAxisKeys.html) — `xAxisKey` / `yAxisKey`
+- [Fill and Legend Toggle](./example/fillAndToggle.html) — `fillColor` and `alwaysShowTrendline`
+- [Slope in Percent and Trend Offset](./example/slopeAndOffset.html) — `percentage` and `trendoffset`
 
 ## Supported chart types
 

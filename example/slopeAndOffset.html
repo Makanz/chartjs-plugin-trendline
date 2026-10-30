@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Slope in Percent and Trend Offset - Chart.js Trendline Plugin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.js"></script>
+    <script src="../dist/chartjs-plugin-trendline.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 380px;
+        }
+        .info-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .nav-links a:hover {
+            background: #2980b9;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Slope in Percent and Trend Offset</h1>
+        <p class="subtitle">Two ways to make the label mean something — and to leave data out of the fit</p>
+
+        <h2 style="color: #2c3e50;">Slope as a percentage</h2>
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="percent-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>percentage: true</h3>
+            <p>
+                <code>percentage</code> prints the slope × 100. That is only a meaningful
+                percentage when the y values are fractions of a whole and x is a real unit: here
+                the share of households adopting a service goes from 5 % to 13 % over eight years,
+                and the label reads <strong>1.15 % per year</strong>.
+            </p>
+            <ul>
+                <li>On a category axis (regions, products) the slope is "per step", and × 100 names no unit — leave <code>percentage</code> off there</li>
+                <li>The y axis shows percent through a tick callback; the data stays 0–1</li>
+                <li>x is a <strong>linear</strong> axis with <code>{x, y}</code> points, so one x step is one year, not one data point</li>
+            </ul>
+        </div>
+
+        <h2 style="color: #2c3e50;">Leaving data out of the fit</h2>
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="offset-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>trendoffset: -2</h3>
+            <p>
+                The last two quarters jump away from the series. <code>trendoffset: -2</code> excludes
+                them from the fit — and, because the line runs from the first to the last included
+                point, it visibly stops before them.
+            </p>
+            <ul>
+                <li><strong>Positive offset</strong> skips the first n elements: <code>trendoffset: 2</code> starts at the third</li>
+                <li><strong>Negative offset</strong> excludes the last n elements: <code>trendoffset: -2</code> stops two from the end</li>
+                <li>An offset at least as large as the dataset is ignored, so a short series still gets a line</li>
+                <li>Works the same for a plain number array as for <code>{x, y}</code> objects — this chart uses numbers</li>
+            </ul>
+        </div>
+
+        <div class="nav-links">
+            <a href="../index.html">← Back to Examples</a>
+            <a href="fillAndToggle.html">← Fill and Legend Toggle</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            new Chart(document.getElementById("percent-chart"), {
+                type: "line",
+                data: {
+                    datasets: [
+                        {
+                            label: "Households with the service",
+                            data: [
+                                { x: 2018, y: 0.05 },
+                                { x: 2019, y: 0.062 },
+                                { x: 2020, y: 0.071 },
+                                { x: 2021, y: 0.084 },
+                                { x: 2022, y: 0.09 },
+                                { x: 2023, y: 0.105 },
+                                { x: 2024, y: 0.121 },
+                                { x: 2025, y: 0.13 },
+                            ],
+                            borderColor: "#3e95cd",
+                            backgroundColor: "rgba(62, 149, 205, 0.1)",
+                            pointRadius: 4,
+                            fill: false,
+                            trendlineLinear: {
+                                colorMin: "#e74c3c",
+                                width: 2,
+                                lineStyle: "dashed",
+                                label: {
+                                    text: "Adoption",
+                                    display: true,
+                                    displayValue: true,
+                                    percentage: true,
+                                    color: "#e74c3c",
+                                    offset: 10,
+                                },
+                            },
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "Service Adoption, 2018–2025",
+                            font: { size: 16 },
+                        },
+                        legend: { display: false },
+                    },
+                    scales: {
+                        x: {
+                            type: "linear",
+                            title: { display: true, text: "Year" },
+                            ticks: {
+                                stepSize: 1,
+                                // Years, not "2,018" — the linear axis formats thousands by default.
+                                callback: (value) => String(value),
+                            },
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: "Share of households" },
+                            ticks: {
+                                callback: (value) => `${Math.round(value * 100)} %`,
+                            },
+                        },
+                    },
+                },
+            });
+
+            new Chart(document.getElementById("offset-chart"), {
+                type: "line",
+                data: {
+                    labels: ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8"],
+                    datasets: [
+                        {
+                            label: "Quarterly volume",
+                            data: [12, 15, 14, 18, 21, 24, 55, 60],
+                            borderColor: "#3cba9f",
+                            backgroundColor: "rgba(60, 186, 159, 0.1)",
+                            pointRadius: 4,
+                            fill: false,
+                            trendlineLinear: {
+                                colorMin: "#3cba9f",
+                                width: 2,
+                                lineStyle: "solid",
+                                trendoffset: -2,
+                                label: {
+                                    text: "Trend on Q1–Q6",
+                                    display: true,
+                                    displayValue: true,
+                                    color: "#2c7a68",
+                                    offset: 10,
+                                },
+                            },
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "Trend Offset — the Last Two Quarters Are Excluded",
+                            font: { size: 16 },
+                        },
+                        legend: { display: false },
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: "Volume" },
+                        },
+                        x: {
+                            title: { display: true, text: "Quarter" },
+                        },
+                    },
+                },
+            });
+        });
+    </script>
+</body>
+</html>

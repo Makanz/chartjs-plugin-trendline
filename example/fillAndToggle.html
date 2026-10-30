@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Fill and Legend Toggle - Chart.js Trendline Plugin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.js"></script>
+    <script src="../dist/chartjs-plugin-trendline.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 420px;
+        }
+        .info-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .nav-links a:hover {
+            background: #2980b9;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fill and Legend Toggle</h1>
+        <p class="subtitle">Fill the area under a trendline, and keep one when its dataset is hidden</p>
+
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="fill-toggle-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Try It</h3>
+            <p>Click a series in the legend:</p>
+            <ul>
+                <li><strong>New users</strong> (blue, tinted area): the trendline is filled with <code>fillColor</code>. Hide the series and its trendline goes with it</li>
+                <li><strong>Returning users</strong> (purple, solid line): the dataset sets <code>alwaysShowTrendline: true</code>, so its trendline stays on the chart even when the series is hidden</li>
+            </ul>
+        </div>
+
+        <div class="info-section">
+            <h3>Configuration Used</h3>
+            <ul>
+                <li><strong>fillColor</strong> is a trendline option: <code>trendlineLinear.fillColor</code> fills between the line and the bottom of the chart area</li>
+                <li><strong>alwaysShowTrendline</strong> is a <em>dataset</em> option, not a trendline option — it sits next to <code>label</code> and <code>data</code></li>
+                <li><strong>legend</strong> entries for trendlines are separate; these two datasets do not add any, so the legend stays short</li>
+            </ul>
+        </div>
+
+        <div class="nav-links">
+            <a href="../index.html">← Back to Examples</a>
+            <a href="customAxisKeys.html">← Custom Axis Keys</a>
+            <a href="slopeAndOffset.html">Slope and Offset →</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            new Chart(document.getElementById("fill-toggle-chart"), {
+                type: "line",
+                data: {
+                    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
+                    datasets: [
+                        {
+                            label: "New users",
+                            data: [120, 145, 133, 168, 190, 205, 236, 258],
+                            borderColor: "#3e95cd",
+                            backgroundColor: "rgba(62, 149, 205, 0.1)",
+                            fill: false,
+                            trendlineLinear: {
+                                colorMin: "#3e95cd",
+                                colorMax: "#3e95cd",
+                                width: 2,
+                                fillColor: "rgba(62, 149, 205, 0.18)",
+                            },
+                        },
+                        {
+                            label: "Returning users",
+                            data: [60, 72, 81, 79, 96, 108, 119, 131],
+                            borderColor: "#8e5ea2",
+                            fill: false,
+                            alwaysShowTrendline: true,
+                            trendlineLinear: {
+                                colorMin: "#8e5ea2",
+                                colorMax: "#8e5ea2",
+                                width: 2,
+                                lineStyle: "solid",
+                            },
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "New and Returning Users",
+                            font: { size: 16 },
+                        },
+                        legend: { display: true, position: "top" },
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: "Users" },
+                        },
+                        x: {
+                            title: { display: true, text: "Month" },
+                        },
+                    },
+                },
+            });
+        });
+    </script>
+</body>
+</html>
