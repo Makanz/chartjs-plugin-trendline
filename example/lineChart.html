@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Line Chart - Chart.js Trendline Plugin</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
+    <script src="../dist/chartjs-plugin-trendline.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -97,11 +97,11 @@
             <h3>Configuration Features</h3>
             <p>This example demonstrates advanced trendline features on line chart data:</p>
             <ul>
-                <li><strong>Multiple datasets:</strong> Each with unique trendline configurations</li>
-                <li><strong>Custom labels:</strong> Asia dataset shows custom label positioning with offset</li>
-                <li><strong>Legend integration:</strong> Custom legend text for trendlines</li>
-                <li><strong>Line styles:</strong> Solid, dashed, and dotted trendlines</li>
-                <li><strong>Color gradients:</strong> Asia trendline uses colorMin/colorMax for gradient effect</li>
+                <li><strong>Two of five datasets have a trendline:</strong> Africa (solid) and Asia (dashed). A dataset without <code>trendlineLinear</code> gets no trendline</li>
+                <li><strong>Custom labels:</strong> Asia places its label with an <code>offset</code> and sets <code>displayValue: false</code>, so no slope is printed</li>
+                <li><strong>Legend integration:</strong> Asia adds its own legend entry, "Asian trendline"</li>
+                <li><strong>Line styles:</strong> Solid and dashed</li>
+                <li><strong>Color gradients:</strong> Asia's trendline runs from <code>colorMin</code> to <code>colorMax</code></li>
             </ul>
         </div>
 

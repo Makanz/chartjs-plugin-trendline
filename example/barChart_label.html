@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Bar Chart with Label - Chart.js Trendline Plugin</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline/dist/chartjs-plugin-trendline.min.js"></script>
+    <script src="../dist/chartjs-plugin-trendline.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -85,7 +85,7 @@
 <body>
     <div class="container">
         <h1>Bar Chart with Trendline Label</h1>
-        <p class="subtitle">Demonstrates trendline with custom label displaying percentage</p>
+        <p class="subtitle">Demonstrates a trendline with a custom label showing the fitted slope</p>
         
         <div class="chart-container">
             <div class="chart-wrapper">
@@ -100,7 +100,7 @@
                 <li><strong>colorMin:</strong> <code>"rgba(255,105,180, .8)"</code> - Pink semi-transparent color</li>
                 <li><strong>lineStyle:</strong> <code>"dotted"</code> - Dotted line pattern</li>
                 <li><strong>width:</strong> <code>2</code> - Line width of 2 pixels</li>
-                <li><strong>label:</strong> Custom label with black text, percentage display, and 10px offset</li>
+                <li><strong>label:</strong> Custom black text with a 10px offset. <code>displayValue</code> is on by default, so the slope is appended; the slope here is per category step</li>
             </ul>
         </div>
 
@@ -127,7 +127,6 @@
                                     color: "#000",
                                     text: "Trendline label",
                                     display: true,
-                                    percentage: true,
                                     offset: 10
                                 },
                                 colorMin: "rgba(255,105,180, .8)",
