@@ -8,6 +8,13 @@
 - Added `example/exponentialLinearAxis.html`, which shows the same fit on a linear axis, where the curve is visible
 - `example/exponentialChart.html` now says why its y axis is logarithmic
 - Added the exponential examples to `index.html`
+- The examples now load `../dist/chartjs-plugin-trendline.min.js` instead of the published package, so they show the code in the repository and work offline. `REVIEW.md` already expected this
+- Removed `example/test-null-handling.html`, a debug page left over from the null-handling fix: it was linked from nowhere, logged to the console, and its data did not match the example it claimed to reproduce
+- `example/scatterChart.html` uses readable data and explains the fit; the old points (duplicate x values and a 100× outlier) produced a slope of about 6800 with no explanation
+- `example/lineChart.html` no longer claims every dataset has a trendline, or that a dotted style is on the page
+- `example/barChart_label.html` no longer sets `percentage` on a category axis, where slope × 100 has no unit
+- `example/lineChartProjection.html` uses `dashdot` for its fourth dataset (it repeated `dotted`) and drops a stale comment about `lineStyle`
+- README: documents `legend.display` and `legend.color`, explains `label.percentage`, and lists every example
 
 # Changelog 3.3.0
 

@@ -74,7 +74,7 @@ For linear trendlines (straight lines), use the `trendlineLinear` configuration:
 			display: boolean,
 			displayValue: boolean, // shows slope value
 			offset: number,
-			percentage: boolean,
+			percentage: boolean, // prints slope × 100; meaningful when x has a unit
 			font: {
 				family: string,
 				size: number,
@@ -82,12 +82,14 @@ For linear trendlines (straight lines), use the `trendlineLinear` configuration:
 		},
 		// optional
 		legend: {
+			display: boolean, // false suppresses the entry; any legend object adds one otherwise
 			text: string,
 			strokeStyle: Color,
+			color: Color, // alias for strokeStyle
 			fillStyle: Color,
 			lineCap: string,
 			lineDash: number[],
-			lineWidth: number,
+			lineWidth: number, // defaults to width
 		}
 	}
 }
@@ -122,12 +124,14 @@ For exponential trendlines (curves of the form y = a × e^(b×x)), use the `tren
 		},
 		// optional
 		legend: {
+			display: boolean, // false suppresses the entry; any legend object adds one otherwise
 			text: string,
 			strokeStyle: Color,
+			color: Color, // alias for strokeStyle
 			fillStyle: Color,
 			lineCap: string,
 			lineDash: number[],
-			lineWidth: number,
+			lineWidth: number, // defaults to width
 		}
 	}
 }
@@ -144,11 +148,16 @@ ignored by the fit.
 
 ## Examples
 
-- [Linear Trendline Example](./example/lineChart.html)
-- [Exponential Trendline Example](./example/exponentialChart.html)
-- [Exponential Trendline on a Linear Axis](./example/exponentialLinearAxis.html)
+- [Linear Trendline Example](./example/lineChart.html) — labels, legend entries and gradients
 - [Bar Chart with Trendline](./example/barChart.html)
+- [Bar Chart with Label](./example/barChart_label.html) — slope in the label
+- [Bar Chart with Null Values](./example/barChartWithNullValues.html) — missing points are skipped
+- [Exponential Trendline Example](./example/exponentialChart.html) — on a logarithmic axis
+- [Exponential Trendline on a Linear Axis](./example/exponentialLinearAxis.html) — the curve is visible
+- [Line Chart Projection](./example/lineChartProjection.html) — projection, trendoffset, nulls, line styles
+- [Time Series Line Chart](./example/lineChartTypeTime.html) — a time scale
 - [Scatter Chart with Trendline](./example/scatterChart.html)
+- [Scatter Projection](./example/scatterProjection.html)
 
 ## Supported chart types
 
