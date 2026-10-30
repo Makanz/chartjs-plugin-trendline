@@ -137,10 +137,16 @@ For exponential trendlines (curves of the form y = a × e^(b×x)), use the `tren
 - `a` is the coefficient (scaling factor)
 - `b` is the growth rate (positive for growth, negative for decay)
 
+The fitted curve is sampled when it is drawn, so it follows y = a × e^(b×x) on a
+linear axis as well as on a logarithmic one (where the curve is a straight line).
+All samples are taken from valid points with y > 0; non-positive values are
+ignored by the fit.
+
 ## Examples
 
 - [Linear Trendline Example](./example/lineChart.html)
 - [Exponential Trendline Example](./example/exponentialChart.html)
+- [Exponential Trendline on a Linear Axis](./example/exponentialLinearAxis.html)
 - [Bar Chart with Trendline](./example/barChart.html)
 - [Scatter Chart with Trendline](./example/scatterChart.html)
 

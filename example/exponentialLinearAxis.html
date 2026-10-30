@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Exponential Trendline on a Linear Axis - Chart.js Trendline Plugin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.js"></script>
+    <script src="../dist/chartjs-plugin-trendline.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 420px;
+        }
+        .info-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .nav-links a:hover {
+            background: #2980b9;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Exponential Trendline on a Linear Axis</h1>
+        <p class="subtitle">The same fit as the logarithmic example, on an axis where the curve is visible</p>
+
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="exponential-linear-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Why the Axis Matters</h3>
+            <p>
+                The fit is <code>y = a × e^(b×x)</code>. On a <strong>logarithmic</strong> y axis an
+                exponential is a straight line, so a trendline drawn as one segment between the
+                first and last point is indistinguishable from the curve. On a <strong>linear</strong>
+                axis it is not: <code>2^x</code> over x = 0–10 is 1024 at the end, but only 32 at
+                x = 5, where a straight chord would pass at 512.
+            </p>
+            <p>
+                The plugin samples the fitted curve, so the line below follows the data on either
+                axis. Compare it with the
+                <a href="exponentialChart.html">logarithmic version</a>, where the same fit appears
+                as a straight line.
+            </p>
+        </div>
+
+        <div class="info-section">
+            <h3>Configuration Used</h3>
+            <ul>
+                <li><strong>trendlineExponential:</strong> fits <code>y = a × e^(b×x)</code> instead of a straight regression</li>
+                <li><strong>label.displayValue:</strong> <code>true</code> — the label shows the fitted <code>a</code> and <code>b</code></li>
+                <li><strong>colorMin / colorMax:</strong> a gradient along the curve</li>
+                <li><strong>lineStyle:</strong> <code>"solid"</code></li>
+            </ul>
+        </div>
+
+        <div class="nav-links">
+            <a href="../index.html">← Back to Examples</a>
+            <a href="exponentialChart.html">← Exponential (log axis)</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            new Chart(document.getElementById("exponential-linear-chart"), {
+                type: "line",
+                data: {
+                    labels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                    datasets: [
+                        {
+                            data: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+                            label: "2^x",
+                            borderColor: "#3e95cd",
+                            backgroundColor: "rgba(62, 149, 205, 0.1)",
+                            fill: false,
+                            pointRadius: 4,
+                            trendlineExponential: {
+                                colorMin: "#ff6b6b",
+                                colorMax: "#e74c3c",
+                                width: 2,
+                                lineStyle: "solid",
+                                label: {
+                                    text: "Exponential Trend",
+                                    display: true,
+                                    displayValue: true,
+                                    color: "#e74c3c",
+                                    font: {
+                                        size: 12,
+                                        family: "Arial",
+                                    },
+                                    offset: 10,
+                                },
+                            },
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "Exponential Trendline on a Linear Y Axis",
+                            font: { size: 16 },
+                        },
+                        legend: { display: false },
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: "X Values" },
+                        },
+                        y: {
+                            type: "linear",
+                            beginAtZero: true,
+                            title: { display: true, text: "Y Values" },
+                        },
+                    },
+                },
+            });
+        });
+    </script>
+</body>
+</html>

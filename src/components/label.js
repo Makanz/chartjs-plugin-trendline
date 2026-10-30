@@ -3,10 +3,12 @@
  * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
  * @param {Object} options - Configuration options for the label.
  * @param {string} options.label - The label text to add.
- * @param {number} options.x1 - The starting x-coordinate of the trendline.
- * @param {number} options.y1 - The starting y-coordinate of the trendline.
- * @param {number} options.x2 - The ending x-coordinate of the trendline.
- * @param {number} options.y2 - The ending y-coordinate of the trendline.
+ * @param {number} [options.x] - The x-coordinate to place the label at. Defaults to the midpoint of x1..x2.
+ * @param {number} [options.y] - The y-coordinate to place the label at. Defaults to the midpoint of y1..y2.
+ * @param {number} [options.x1] - The starting x-coordinate of the trendline.
+ * @param {number} [options.y1] - The starting y-coordinate of the trendline.
+ * @param {number} [options.x2] - The ending x-coordinate of the trendline.
+ * @param {number} [options.y2] - The ending y-coordinate of the trendline.
  * @param {number} options.angle - The angle (in radians) of the trendline.
  * @param {string} options.labelColor - The color of the label text.
  * @param {string} options.family - The font family for the label text.
@@ -16,6 +18,8 @@
 export const addTrendlineLabel = (ctx, options) => {
     const {
         label,
+        x,
+        y,
         x1, y1, x2, y2,
         angle,
         labelColor,
@@ -30,9 +34,10 @@ export const addTrendlineLabel = (ctx, options) => {
     // Label width
     const labelWidth = ctx.measureText(label).width;
 
-    // Calculate the center of the trendline
-    const labelX = (x1 + x2) / 2;
-    const labelY = (y1 + y2) / 2;
+    // The caller may hand over a point on the line (a curve has no midpoint
+    // between two endpoints); otherwise centre the label on it.
+    const labelX = x ?? (x1 + x2) / 2;
+    const labelY = y ?? (y1 + y2) / 2;
 
     // Save the current state of the canvas
     ctx.save();

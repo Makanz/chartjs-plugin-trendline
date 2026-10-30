@@ -1,4 +1,11 @@
-import { getScales, setLineStyle, drawTrendline, fillBelowTrendline } from './drawing.js';
+import {
+  getScales,
+  setLineStyle,
+  drawTrendline,
+  drawTrendlinePath,
+  fillBelowTrendline,
+  fillBelowTrendlinePath,
+} from './drawing.js';
 
 describe('getScales', () => {
   it('should correctly identify x and y scales', () => {
@@ -340,5 +347,153 @@ describe('drawTrendline - identical gradient colors', () => {
 
     expect(ctx.createLinearGradient).toHaveBeenCalledWith(10, 10, 110, 110);
     expect(ctx.stroke).toHaveBeenCalled();
+  });
+});
+
+describe('drawTrendlinePath', () => {
+  let ctx;
+  let gradient;
+  let consoleWarnSpy;
+
+  beforeEach(() => {
+    gradient = { addColorStop: jest.fn() };
+    ctx = {
+      beginPath: jest.fn(),
+      moveTo: jest.fn(),
+      lineTo: jest.fn(),
+      stroke: jest.fn(),
+      closePath: jest.fn(),
+      createLinearGradient: jest.fn(() => gradient),
+      strokeStyle: '',
+    };
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+    jest.clearAllMocks();
+  });
+
+  const polylines = [
+    [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 20, y: 40 }],
+    [{ x: 30, y: 40 }, { x: 40, y: 20 }],
+  ];
+
+  it('strokes every visible stretch as one path', () => {
+    drawTrendlinePath({ ctx, polylines, colorMin: 'red', colorMax: 'red' });
+
+    expect(ctx.beginPath).toHaveBeenCalledTimes(1);
+    expect(ctx.moveTo).toHaveBeenNthCalledWith(1, 0, 0);
+    expect(ctx.moveTo).toHaveBeenNthCalledWith(2, 30, 40);
+    expect(ctx.lineTo).toHaveBeenCalledTimes(3);
+    expect(ctx.lineTo).toHaveBeenNthCalledWith(1, 10, 10);
+    expect(ctx.lineTo).toHaveBeenNthCalledWith(2, 20, 40);
+    expect(ctx.lineTo).toHaveBeenNthCalledWith(3, 40, 20);
+    expect(ctx.stroke).toHaveBeenCalledTimes(1);
+    expect(ctx.closePath).toHaveBeenCalledTimes(1);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
+  it('runs the gradient from the first to the last drawn point', () => {
+    drawTrendlinePath({ ctx, polylines, colorMin: 'red', colorMax: 'blue' });
+
+    expect(ctx.createLinearGradient).toHaveBeenCalledWith(0, 0, 40, 20);
+    expect(gradient.addColorStop).toHaveBeenCalledWith(0, 'red');
+    expect(gradient.addColorStop).toHaveBeenCalledWith(1, 'blue');
+    expect(ctx.strokeStyle).toBe(gradient);
+  });
+
+  it('skips the gradient when both colours are the same', () => {
+    drawTrendlinePath({ ctx, polylines, colorMin: 'red', colorMax: 'red' });
+
+    expect(ctx.createLinearGradient).not.toHaveBeenCalled();
+    expect(ctx.strokeStyle).toBe('red');
+  });
+
+  it('warns and draws nothing for an empty path', () => {
+    drawTrendlinePath({ ctx, polylines: [], colorMin: 'red', colorMax: 'red' });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'Cannot draw trendline: coordinates contain non-finite values',
+      []
+    );
+    expect(ctx.beginPath).not.toHaveBeenCalled();
+    expect(ctx.stroke).not.toHaveBeenCalled();
+  });
+
+  it('warns and draws nothing when a point is non-finite', () => {
+    drawTrendlinePath({
+      ctx,
+      polylines: [[{ x: 0, y: 0 }, { x: NaN, y: 10 }]],
+      colorMin: 'red',
+      colorMax: 'red',
+    });
+
+    expect(consoleWarnSpy).toHaveBeenCalled();
+    expect(ctx.beginPath).not.toHaveBeenCalled();
+    expect(ctx.stroke).not.toHaveBeenCalled();
+  });
+});
+
+describe('fillBelowTrendlinePath', () => {
+  let ctx;
+  let consoleWarnSpy;
+
+  beforeEach(() => {
+    ctx = {
+      beginPath: jest.fn(),
+      moveTo: jest.fn(),
+      lineTo: jest.fn(),
+      closePath: jest.fn(),
+      fill: jest.fn(),
+      fillStyle: '',
+    };
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+    jest.clearAllMocks();
+  });
+
+  it('fills the area below each visible stretch', () => {
+    const polylines = [[{ x: 0, y: 10 }, { x: 20, y: 30 }]];
+
+    fillBelowTrendlinePath({ ctx, polylines, drawBottom: 100, fillColor: 'rgba(0,0,255,0.1)' });
+
+    expect(ctx.beginPath).toHaveBeenCalledTimes(1);
+    expect(ctx.moveTo).toHaveBeenCalledWith(0, 10);
+    expect(ctx.lineTo).toHaveBeenNthCalledWith(1, 20, 30);
+    expect(ctx.lineTo).toHaveBeenNthCalledWith(2, 20, 100);
+    expect(ctx.lineTo).toHaveBeenNthCalledWith(3, 0, 100);
+    expect(ctx.closePath).toHaveBeenCalledTimes(1);
+    expect(ctx.fillStyle).toBe('rgba(0,0,255,0.1)');
+    expect(ctx.fill).toHaveBeenCalledTimes(1);
+  });
+
+  it('fills once per visible stretch', () => {
+    const polylines = [
+      [{ x: 0, y: 10 }, { x: 20, y: 30 }],
+      [{ x: 40, y: 30 }, { x: 60, y: 10 }],
+    ];
+
+    fillBelowTrendlinePath({ ctx, polylines, drawBottom: 100, fillColor: 'blue' });
+
+    expect(ctx.fill).toHaveBeenCalledTimes(2);
+  });
+
+  it('warns and fills nothing when drawBottom is non-finite', () => {
+    fillBelowTrendlinePath({
+      ctx,
+      polylines: [[{ x: 0, y: 10 }, { x: 20, y: 30 }]],
+      drawBottom: Infinity,
+      fillColor: 'blue',
+    });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'Cannot fill below trendline: coordinates contain non-finite values',
+      { drawBottom: Infinity }
+    );
+    expect(ctx.fill).not.toHaveBeenCalled();
   });
 });

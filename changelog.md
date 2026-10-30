@@ -1,3 +1,14 @@
+# Changelog 3.4.0
+
+### Bug Fixes
+- Exponential trendlines are drawn as the fitted curve instead of a straight chord between the first and last point. `y = a × e^(b×x)` is only a straight line on a logarithmic y axis; on a linear axis the old drawing cut across the fit — `2^x` over x = 0–10 passed through 512 at x = 5 instead of 32
+- The sampled curve is stored with the cached regression, so the draw hook still does no per-frame sampling
+
+### Documentation
+- Added `example/exponentialLinearAxis.html`, which shows the same fit on a linear axis, where the curve is visible
+- `example/exponentialChart.html` now says why its y axis is logarithmic
+- Added the exponential examples to `index.html`
+
 # Changelog 3.3.0
 
 ### Performance

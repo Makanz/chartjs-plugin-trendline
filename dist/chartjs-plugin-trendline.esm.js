@@ -408,41 +408,154 @@ const drawTrendline = ({ ctx, x1, y1, x2, y2, colorMin, colorMax }) => {
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
 
+    ctx.strokeStyle = resolveStrokeStyle({
+        ctx,
+        fromX: x1, fromY: y1,
+        toX: x2, toY: y2,
+        colorMin,
+        colorMax,
+    });
+
+    ctx.stroke();
+    ctx.closePath();
+};
+
+/**
+ * Draws a trendline made of one or more polylines — the shape an exponential
+ * fit needs, since it is a curve rather than a straight segment. Each polyline
+ * is a separate visible stretch; the gaps between them are parts of the curve
+ * that fall outside the chart area.
+ * @param {Object} params - The trendline parameters.
+ * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
+ * @param {Array<Array<{x: number, y: number}>>} params.polylines - Pixel-space polylines, in draw order.
+ * @param {string} params.colorMin - The starting colour of the trendline gradient.
+ * @param {string} params.colorMax - The ending colour of the trendline gradient.
+ */
+const drawTrendlinePath = ({ ctx, polylines, colorMin, colorMax }) => {
+    if (!hasDrawablePolylines(polylines, 'draw trendline')) return;
+
+    ctx.beginPath();
+    polylines.forEach((polyline) => {
+        ctx.moveTo(polyline[0].x, polyline[0].y);
+        for (let index = 1; index < polyline.length; index++) {
+            ctx.lineTo(polyline[index].x, polyline[index].y);
+        }
+    });
+
+    const first = polylines[0][0];
+    const lastPolyline = polylines[polylines.length - 1];
+    const last = lastPolyline[lastPolyline.length - 1];
+
+    ctx.strokeStyle = resolveStrokeStyle({
+        ctx,
+        fromX: first.x, fromY: first.y,
+        toX: last.x, toY: last.y,
+        colorMin,
+        colorMax,
+    });
+    ctx.stroke();
+    ctx.closePath();
+};
+
+/**
+ * Fills the area between a trendline path and the bottom of the chart.
+ * @param {Object} params - The fill parameters.
+ * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
+ * @param {Array<Array<{x: number, y: number}>>} params.polylines - Pixel-space polylines, in draw order.
+ * @param {number} params.drawBottom - The bottom boundary of the chart.
+ * @param {string} params.fillColor - The fill colour.
+ */
+const fillBelowTrendlinePath = ({ ctx, polylines, drawBottom, fillColor }) => {
+    if (!hasDrawablePolylines(polylines, 'fill below trendline')) return;
+    if (!validateFiniteCoords({ drawBottom }, 'fill below trendline')) return;
+
+    ctx.fillStyle = fillColor;
+
+    polylines.forEach((polyline) => {
+        const first = polyline[0];
+        const last = polyline[polyline.length - 1];
+
+        ctx.beginPath();
+        ctx.moveTo(first.x, first.y);
+        for (let index = 1; index < polyline.length; index++) {
+            ctx.lineTo(polyline[index].x, polyline[index].y);
+        }
+        ctx.lineTo(last.x, drawBottom);
+        ctx.lineTo(first.x, drawBottom);
+        ctx.closePath();
+        ctx.fill();
+    });
+};
+
+/**
+ * Checks that a polyline collection can be drawn: at least one line, each with
+ * two or more finite points. Warns once and returns false otherwise.
+ * @param {Array<Array<{x: number, y: number}>>} polylines - Pixel-space polylines.
+ * @param {string} label - Label for the warning message (e.g., 'draw trendline').
+ * @returns {boolean} - True if every polyline is drawable.
+ */
+const hasDrawablePolylines = (polylines, label) => {
+    if (Array.isArray(polylines) && polylines.length > 0) {
+        const drawable = polylines.every(
+            (polyline) =>
+                Array.isArray(polyline) &&
+                polyline.length >= 2 &&
+                polyline.every((point) => point && isFinite(point.x) && isFinite(point.y))
+        );
+        if (drawable) return true;
+    }
+
+    console.warn(`Cannot ${label}: coordinates contain non-finite values`, polylines);
+    return false;
+};
+
+/**
+ * Resolves the stroke style for a path: a plain colour, or a gradient from the
+ * first to the last point when the two colours differ.
+ * @param {Object} params - The style parameters.
+ * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
+ * @param {number} params.fromX - Start of the gradient, x pixel.
+ * @param {number} params.fromY - Start of the gradient, y pixel.
+ * @param {number} params.toX - End of the gradient, x pixel.
+ * @param {number} params.toY - End of the gradient, y pixel.
+ * @param {string} params.colorMin - The colour at the start of the gradient.
+ * @param {string} params.colorMax - The colour at the end of the gradient.
+ * @returns {string|CanvasGradient} - The resolved stroke style.
+ */
+const resolveStrokeStyle = ({ ctx, fromX, fromY, toX, toY, colorMin, colorMax }) => {
     // Identical colours are the common case (only one colour configured, the
     // other falls back to the same default). A gradient then costs a
     // createLinearGradient + two addColorStop calls per dataset per frame for
     // a solid line.
-    if (colorMin === colorMax) {
-        ctx.strokeStyle = colorMin;
-        ctx.stroke();
-        ctx.closePath();
-        return;
+    if (colorMin === colorMax) return colorMin;
+
+    // Additional validation for degenerate gradients
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const gradientLength = Math.sqrt(dx * dx + dy * dy);
+
+    // If the gradient vector is too small, createLinearGradient may fail
+    if (gradientLength < 0.01) {
+        console.warn('Gradient vector too small, using solid color:', {
+            x1: fromX,
+            y1: fromY,
+            x2: toX,
+            y2: toY,
+            length: gradientLength,
+        });
+        return colorMin;
     }
 
     try {
-        // Additional validation for degenerate gradients
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const gradientLength = Math.sqrt(dx * dx + dy * dy);
-        
-        // If the gradient vector is too small, createLinearGradient may fail
-        if (gradientLength < 0.01) {
-            console.warn('Gradient vector too small, using solid color:', { x1, y1, x2, y2, length: gradientLength });
-            ctx.strokeStyle = colorMin;
-        } else {
-            let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-            gradient.addColorStop(0, colorMin);
-            gradient.addColorStop(1, colorMax);
-            ctx.strokeStyle = gradient;
-        }
+        const gradient = ctx.createLinearGradient(fromX, fromY, toX, toY);
+        gradient.addColorStop(0, colorMin);
+        gradient.addColorStop(1, colorMax);
+        return gradient;
     } catch (e) {
         // Fallback to solid color if gradient creation fails
         console.warn('Gradient creation failed, using solid color:', e);
-        ctx.strokeStyle = colorMin;
+        return colorMin;
     }
-
-    ctx.stroke();
-    ctx.closePath();
 };
 
 /**
@@ -475,10 +588,12 @@ const fillBelowTrendline = (ctx, x1, y1, x2, y2, drawBottom, fillColor) => {
  * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
  * @param {Object} options - Configuration options for the label.
  * @param {string} options.label - The label text to add.
- * @param {number} options.x1 - The starting x-coordinate of the trendline.
- * @param {number} options.y1 - The starting y-coordinate of the trendline.
- * @param {number} options.x2 - The ending x-coordinate of the trendline.
- * @param {number} options.y2 - The ending y-coordinate of the trendline.
+ * @param {number} [options.x] - The x-coordinate to place the label at. Defaults to the midpoint of x1..x2.
+ * @param {number} [options.y] - The y-coordinate to place the label at. Defaults to the midpoint of y1..y2.
+ * @param {number} [options.x1] - The starting x-coordinate of the trendline.
+ * @param {number} [options.y1] - The starting y-coordinate of the trendline.
+ * @param {number} [options.x2] - The ending x-coordinate of the trendline.
+ * @param {number} [options.y2] - The ending y-coordinate of the trendline.
  * @param {number} options.angle - The angle (in radians) of the trendline.
  * @param {string} options.labelColor - The color of the label text.
  * @param {string} options.family - The font family for the label text.
@@ -488,6 +603,8 @@ const fillBelowTrendline = (ctx, x1, y1, x2, y2, drawBottom, fillColor) => {
 const addTrendlineLabel = (ctx, options) => {
     const {
         label,
+        x,
+        y,
         x1, y1, x2, y2,
         angle,
         labelColor,
@@ -502,9 +619,10 @@ const addTrendlineLabel = (ctx, options) => {
     // Label width
     const labelWidth = ctx.measureText(label).width;
 
-    // Calculate the center of the trendline
-    const labelX = (x1 + x2) / 2;
-    const labelY = (y1 + y2) / 2;
+    // The caller may hand over a point on the line (a curve has no midpoint
+    // between two endpoints); otherwise centre the label on it.
+    const labelX = x ?? (x1 + x2) / 2;
+    const labelY = y ?? (y1 + y2) / 2;
 
     // Save the current state of the canvas
     ctx.save();
@@ -525,6 +643,13 @@ const addTrendlineLabel = (ctx, options) => {
     // Restore the canvas state
     ctx.restore();
 };
+
+/**
+ * Number of straight segments used to sample an exponential trendline. The
+ * curve is smooth at this resolution on any realistic chart, and 64 segments
+ * cost a fraction of the one regression fit the plugin already caches.
+ */
+const EXPONENTIAL_CURVE_SEGMENTS = 64;
 
 /**
  * Collects valid data points from a dataset and adds them to the fitter.
@@ -606,67 +731,58 @@ const collectDataPoints = (fitter, dataset, trendoffset, effectiveFirstIndex, xy
 };
 
 /**
- * Calculates the pixel coordinates for the trendline, handling both projection and non-projection modes.
- * Projection mode extends the trendline across the full chart area, while non-projection mode
- * fits the line exactly to the data range.
- * @param {Object} fitter - The fitter instance (LineFitter or ExponentialFitter).
- * @param {boolean} isExponential - Whether the trendline is exponential.
+ * Calculates the pixel coordinates of a linear trendline, handling both
+ * projection and non-projection modes. Projection mode extends the trendline
+ * across the full chart area, while non-projection mode fits the line exactly
+ * to the data range.
+ *
+ * Exponential fits do not use this function: a curve cannot be represented by
+ * two endpoints. They sample the fit through sampleExponentialPath instead.
+ * @param {Object} fitter - The LineFitter instance.
  * @param {Object} trendlineConfig - The trendline configuration object.
  * @param {Scale} xScale - The x-axis scale object.
  * @param {Scale} yScaleToUse - The y-axis scale object to use.
  * @param {Object} chartArea - The chart area with { left, right, top, bottom } pixel boundaries.
  * @returns {Object} An object with { x1_px, y1_px, x2_px, y2_px } pixel coordinates.
  */
-const calculateProjectedCoordinates = (fitter, isExponential, trendlineConfig, xScale, yScaleToUse, chartArea) => {
+const calculateProjectedCoordinates = (fitter, trendlineConfig, xScale, yScaleToUse, chartArea) => {
     let x1_px, y1_px, x2_px, y2_px;
 
     // Determine trendline start/end points based on the 'projection' option.
     if (trendlineConfig.projection) {
-        let points = [];
+        const points = [];
 
-        if (isExponential) {
-            // For exponential curves, we generate points across the x-axis range
-            const val_x_left = xScale.getValueForPixel(chartArea.left);
-            const y_at_left = fitter.f(val_x_left);
-            points.push({ x: val_x_left, y: y_at_left });
+        const slope = fitter.slope();
+        const intercept = fitter.intercept();
 
-            const val_x_right = xScale.getValueForPixel(chartArea.right);
-            const y_at_right = fitter.f(val_x_right);
-            points.push({ x: val_x_right, y: y_at_right });
+        // Use a relative threshold for near-zero slope detection.
+        // With time-scale axes, x-values are large timestamps (~1.7e12 ms),
+        // so even visually significant slopes have absolute values well below
+        // 1e-6. Compare slope * x-range against the y-range instead.
+        const xRange = fitter.maxx - fitter.minx;
+        const yRange = (yScaleToUse.max - yScaleToUse.min) || 1;
+        const isNearZeroSlope = Math.abs(slope * xRange) < Math.abs(yRange) * 1e-6;
+
+        if (!isNearZeroSlope) {
+            const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
+            const x_at_top = (val_y_top - intercept) / slope;
+            points.push({ x: x_at_top, y: val_y_top });
+
+            const val_y_bottom = yScaleToUse.getValueForPixel(chartArea.bottom);
+            const x_at_bottom = (val_y_bottom - intercept) / slope;
+            points.push({ x: x_at_bottom, y: val_y_bottom });
         } else {
-            // Linear projection logic
-            const slope = fitter.slope();
-            const intercept = fitter.intercept();
-
-            // Use a relative threshold for near-zero slope detection.
-            // With time-scale axes, x-values are large timestamps (~1.7e12 ms),
-            // so even visually significant slopes have absolute values well below
-            // 1e-6. Compare slope * x-range against the y-range instead.
-            const xRange = fitter.maxx - fitter.minx;
-            const yRange = (yScaleToUse.max - yScaleToUse.min) || 1;
-            const isNearZeroSlope = Math.abs(slope * xRange) < Math.abs(yRange) * 1e-6;
-
-            if (!isNearZeroSlope) {
-                const val_y_top = yScaleToUse.getValueForPixel(chartArea.top);
-                const x_at_top = (val_y_top - intercept) / slope;
-                points.push({ x: x_at_top, y: val_y_top });
-
-                const val_y_bottom = yScaleToUse.getValueForPixel(chartArea.bottom);
-                const x_at_bottom = (val_y_bottom - intercept) / slope;
-                points.push({ x: x_at_bottom, y: val_y_bottom });
-            } else {
-                points.push({ x: xScale.getValueForPixel(chartArea.left), y: intercept });
-                points.push({ x: xScale.getValueForPixel(chartArea.right), y: intercept });
-            }
-
-            const val_x_left = xScale.getValueForPixel(chartArea.left);
-            const y_at_left = fitter.f(val_x_left);
-            points.push({ x: val_x_left, y: y_at_left });
-
-            const val_x_right = xScale.getValueForPixel(chartArea.right);
-            const y_at_right = fitter.f(val_x_right);
-            points.push({ x: val_x_right, y: y_at_right });
+            points.push({ x: xScale.getValueForPixel(chartArea.left), y: intercept });
+            points.push({ x: xScale.getValueForPixel(chartArea.right), y: intercept });
         }
+
+        const val_x_left = xScale.getValueForPixel(chartArea.left);
+        const y_at_left = fitter.f(val_x_left);
+        points.push({ x: val_x_left, y: y_at_left });
+
+        const val_x_right = xScale.getValueForPixel(chartArea.right);
+        const y_at_right = fitter.f(val_x_right);
+        points.push({ x: val_x_right, y: y_at_right });
 
         const chartMinX = xScale.getValueForPixel(chartArea.left);
         const chartMaxX = xScale.getValueForPixel(chartArea.right);
@@ -709,6 +825,122 @@ const calculateProjectedCoordinates = (fitter, isExponential, trendlineConfig, x
     }
 
     return { x1_px, y1_px, x2_px, y2_px };
+};
+
+/**
+ * Samples an exponential fit as pixel-space points. A linear fit is exact
+ * between its endpoints; this one is a curve, and drawing it as a chord across
+ * the data range is wrong on any axis where an exponential is not a straight
+ * line (that is, every axis except a logarithmic one).
+ * @param {Object} fitter - The ExponentialFitter instance.
+ * @param {Object} trendlineConfig - The trendline configuration object.
+ * @param {Scale} xScale - The x-axis scale object.
+ * @param {Scale} yScale - The y-axis scale object to use.
+ * @param {Object} chartArea - The chart area with { left, right, top, bottom } pixel boundaries.
+ * @returns {Array<{x: number, y: number}|null>} Pixel points; a null marks a
+ *   break where the fit or the scale cannot place a value.
+ */
+const sampleExponentialPath = (fitter, trendlineConfig, xScale, yScale, chartArea) => {
+    let startX;
+    let endX;
+
+    if (trendlineConfig.projection) {
+        startX = xScale.getValueForPixel(chartArea.left);
+        endX = xScale.getValueForPixel(chartArea.right);
+    } else {
+        startX = fitter.minx;
+        endX = fitter.maxx;
+    }
+
+    if (!isFinite(startX) || !isFinite(endX) || startX === endX) return [];
+
+    const points = [];
+    for (let index = 0; index <= EXPONENTIAL_CURVE_SEGMENTS; index++) {
+        const x = startX + ((endX - startX) * index) / EXPONENTIAL_CURVE_SEGMENTS;
+        const pixelX = xScale.getPixelForValue(x);
+        const pixelY = yScale.getPixelForValue(fitter.f(x));
+
+        // A null marks a break. The fit overflows to 0 outside its guard, and a
+        // logarithmic axis has no pixel for a value at or below zero — bridging
+        // across either would draw a segment the data does not support.
+        points.push(isFinite(pixelX) && isFinite(pixelY) ? { x: pixelX, y: pixelY } : null);
+    }
+    return points;
+};
+
+/**
+ * Clips a sampled path to the chart area, returning the visible stretches as
+ * polylines. Breaks (null entries) and segments entirely outside the area end
+ * the current stretch, so the caller never draws across a gap.
+ * @param {Array<{x: number, y: number}|null>} points - Pixel-space points.
+ * @param {Object} chartArea - The chart area with { left, right, top, bottom } pixel boundaries.
+ * @returns {Array<Array<{x: number, y: number}>>} Visible polylines.
+ */
+const clipPolylineToArea = (points, chartArea) => {
+    const polylines = [];
+    let current = [];
+
+    const closeCurrent = () => {
+        if (current.length >= 2) polylines.push(current);
+        current = [];
+    };
+
+    const isUsable = (point) => point && isFinite(point.x) && isFinite(point.y);
+
+    for (let index = 0; index < points.length; index++) {
+        const point = points[index];
+
+        if (!isUsable(point)) {
+            closeCurrent();
+            continue;
+        }
+
+        const previous = points[index - 1];
+        if (!isUsable(previous)) {
+            closeCurrent();
+            current.push({ x: point.x, y: point.y });
+            continue;
+        }
+
+        const clipped = liangBarskyClip(previous.x, previous.y, point.x, point.y, chartArea);
+        if (!clipped) {
+            closeCurrent();
+            continue;
+        }
+
+        const last = current[current.length - 1];
+        if (!last || Math.abs(last.x - clipped.x1) > 1e-6 || Math.abs(last.y - clipped.y1) > 1e-6) {
+            // The segment enters the area somewhere other than where the
+            // previous one left off: start a new visible stretch.
+            closeCurrent();
+            current.push({ x: clipped.x1, y: clipped.y1 });
+        }
+
+        current.push({ x: clipped.x2, y: clipped.y2 });
+    }
+
+    closeCurrent();
+    return polylines;
+};
+
+/**
+ * Picks the label position and angle on a drawn curve: the middle of the
+ * longest visible stretch, rotated along the tangent there.
+ * @param {Array<Array<{x: number, y: number}>>} polylines - Visible polylines.
+ * @returns {{x: number, y: number, angle: number}} Anchor point and angle.
+ */
+const curveLabelAnchor = (polylines) => {
+    const longest = polylines.reduce((best, line) => (line.length > best.length ? line : best));
+    const middle = Math.floor(longest.length / 2);
+    const before = longest[Math.max(0, middle - 1)];
+    const after = longest[Math.min(longest.length - 1, middle + 1)];
+    const anchor = longest[middle];
+
+    return {
+        x: anchor.x,
+        y: anchor.y,
+        angle: Math.atan2(after.y - before.y, after.x - before.x),
+    };
 };
 
 /**
@@ -758,13 +990,13 @@ const buildFitter = (dataset, options) => {
 };
 
 /**
- * Returns a cached fit for the dataset, or builds and stores one.
+ * Returns the cached fit entry for the dataset, or builds and stores one.
  * @param {Map} fitCache - Per chart update cache (dataset -> entry).
  * @param {Object} dataset - The chart dataset.
  * @param {Object} options - Fit inputs.
- * @returns {Object} The fitter instance.
+ * @returns {Object} The cache entry, holding the fitter and the drawn curve.
  */
-const getCachedFitter = (fitCache, dataset, options) => {
+const getCachedFit = (fitCache, dataset, options) => {
     const scaleType = options.xScale?.options?.type ?? options.xScale?.type;
     const signature = [
         options.isExponential ? 'exp' : 'lin',
@@ -781,7 +1013,7 @@ const getCachedFitter = (fitCache, dataset, options) => {
         cached.data === dataset.data &&
         cached.length === dataset.data.length
     ) {
-        return cached.fitter;
+        return cached;
     }
 
     const entry = {
@@ -789,9 +1021,53 @@ const getCachedFitter = (fitCache, dataset, options) => {
         data: dataset.data,
         length: dataset.data.length,
         fitter: buildFitter(dataset, options),
+        curve: null,
     };
     fitCache.set(dataset, entry);
-    return entry.fitter;
+    return entry;
+};
+
+/**
+ * Returns the sampled, clipped curve for the current update, or builds and
+ * stores it. Sampling 64 points is cheap, but the draw hook runs once per
+ * animation frame, and the chart area and scale bounds do not change between
+ * frames of the same update.
+ * @param {Object} entry - The fit cache entry.
+ * @param {Object} inputs - { trendlineConfig, xScale, yScale, chartArea }.
+ * @param {Function} build - Builds the polylines when the cache misses.
+ * @returns {Array<Array<{x: number, y: number}>>} Visible polylines.
+ */
+const getCachedCurve = (entry, inputs, build) => {
+    const { trendlineConfig, xScale, yScale, chartArea } = inputs;
+    const curve = entry.curve;
+
+    const isSameCurve =
+        curve &&
+        curve.projection === !!trendlineConfig.projection &&
+        curve.left === chartArea.left &&
+        curve.right === chartArea.right &&
+        curve.top === chartArea.top &&
+        curve.bottom === chartArea.bottom &&
+        curve.xMin === xScale.min &&
+        curve.xMax === xScale.max &&
+        curve.yMin === yScale.min &&
+        curve.yMax === yScale.max;
+
+    if (isSameCurve) return curve.polylines;
+
+    entry.curve = {
+        projection: !!trendlineConfig.projection,
+        left: chartArea.left,
+        right: chartArea.right,
+        top: chartArea.top,
+        bottom: chartArea.bottom,
+        xMin: xScale.min,
+        xMax: xScale.max,
+        yMin: yScale.min,
+        yMax: yScale.max,
+        polylines: build(),
+    };
+    return entry.curve.polylines;
 };
 
 /**
@@ -864,9 +1140,8 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale, fitCache) => {
         yAxisKey,
         chartLabels,
     };
-    const fitter = fitCache
-        ? getCachedFitter(fitCache, dataset, fitOptions)
-        : buildFitter(dataset, fitOptions);
+    const fitEntry = fitCache ? getCachedFit(fitCache, dataset, fitOptions) : null;
+    const fitter = fitEntry ? fitEntry.fitter : buildFitter(dataset, fitOptions);
 
     // --- Trendline Coordinate Calculation ---
     // Ensure there are enough points to form a trendline.
@@ -876,35 +1151,68 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale, fitCache) => {
 
     const chartArea = datasetMeta.controller.chart.chartArea; // Defines the drawable area in pixels.
 
-    let { x1_px, y1_px, x2_px, y2_px } = calculateProjectedCoordinates(
-        fitter, isExponential, trendlineConfig, xScale, yScaleToUse, chartArea
-    );
+    // Where the label sits and which way it points. The two fits arrive at it
+    // differently: a straight line has one midpoint and one angle, a curve has
+    // a point on it.
+    let labelAnchor;
 
-    // --- Line Clipping and Drawing ---
-    let clippedCoords = null;
-    if (isFinite(x1_px) && isFinite(y1_px) && isFinite(x2_px) && isFinite(y2_px)) {
-        clippedCoords = liangBarskyClip(x1_px, y1_px, x2_px, y2_px, chartArea);
+    if (isExponential) {
+        // --- Curve Sampling, Clipping and Drawing ---
+        const buildCurve = () =>
+            clipPolylineToArea(
+                sampleExponentialPath(fitter, trendlineConfig, xScale, yScaleToUse, chartArea),
+                chartArea
+            );
+        const polylines = fitEntry
+            ? getCachedCurve(fitEntry, { trendlineConfig, xScale, yScale: yScaleToUse, chartArea }, buildCurve)
+            : buildCurve();
+
+        if (!polylines.length) return;
+
+        ctx.lineWidth = lineWidth;
+        setLineStyle(ctx, lineStyle);
+        drawTrendlinePath({ ctx, polylines, colorMin, colorMax });
+
+        if (fillColor) {
+            fillBelowTrendlinePath({ ctx, polylines, drawBottom: chartArea.bottom, fillColor });
+        }
+
+        labelAnchor = curveLabelAnchor(polylines);
+    } else {
+        // --- Line Clipping and Drawing ---
+        let { x1_px, y1_px, x2_px, y2_px } = calculateProjectedCoordinates(
+            fitter, trendlineConfig, xScale, yScaleToUse, chartArea
+        );
+
+        let clippedCoords = null;
+        if (isFinite(x1_px) && isFinite(y1_px) && isFinite(x2_px) && isFinite(y2_px)) {
+            clippedCoords = liangBarskyClip(x1_px, y1_px, x2_px, y2_px, chartArea);
+        }
+
+        if (!clippedCoords) return;
+
+        x1_px = clippedCoords.x1;
+        y1_px = clippedCoords.y1;
+        x2_px = clippedCoords.x2;
+        y2_px = clippedCoords.y2;
+
+        // A line shorter than half a pixel is not worth drawing.
+        if (Math.abs(x1_px - x2_px) < 0.5 && Math.abs(y1_px - y2_px) < 0.5) return;
+
+        ctx.lineWidth = lineWidth;
+        setLineStyle(ctx, lineStyle);
+        drawTrendline({ ctx, x1: x1_px, y1: y1_px, x2: x2_px, y2: y2_px, colorMin, colorMax });
+
+        if (fillColor) {
+            fillBelowTrendline(ctx, x1_px, y1_px, x2_px, y2_px, chartArea.bottom, fillColor);
+        }
+
+        labelAnchor = {
+            x: (x1_px + x2_px) / 2,
+            y: (y1_px + y2_px) / 2,
+            angle: Math.atan2(y2_px - y1_px, x2_px - x1_px),
+        };
     }
-
-    if (!clippedCoords) return;
-
-    x1_px = clippedCoords.x1;
-    y1_px = clippedCoords.y1;
-    x2_px = clippedCoords.x2;
-    y2_px = clippedCoords.y2;
-
-    // A line shorter than half a pixel is not worth drawing.
-    if (Math.abs(x1_px - x2_px) < 0.5 && Math.abs(y1_px - y2_px) < 0.5) return;
-
-    ctx.lineWidth = lineWidth;
-    setLineStyle(ctx, lineStyle);
-    drawTrendline({ ctx, x1: x1_px, y1: y1_px, x2: x2_px, y2: y2_px, colorMin, colorMax });
-
-    if (fillColor) {
-        fillBelowTrendline(ctx, x1_px, y1_px, x2_px, y2_px, chartArea.bottom, fillColor);
-    }
-
-    const angle = Math.atan2(y2_px - y1_px, x2_px - x1_px);
 
     if (trendlineConfig.label && display !== false) {
         let trendText = text;
@@ -924,11 +1232,9 @@ const addFitter = (datasetMeta, ctx, dataset, xScale, yScale, fitCache) => {
         }
         addTrendlineLabel(ctx, {
             label: trendText,
-            x1: x1_px,
-            y1: y1_px,
-            x2: x2_px,
-            y2: y2_px,
-            angle,
+            x: labelAnchor.x,
+            y: labelAnchor.y,
+            angle: labelAnchor.angle,
             labelColor: color,
             family,
             size,
