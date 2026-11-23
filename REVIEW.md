@@ -42,6 +42,11 @@ Anything else is at most a nit.
 ## Always flagged
 
 - `.github/workflows/release.yml` — publishes to npm on a tag. A human reads it.
+  A publish can land in npm's staged-publishing queue instead of becoming
+  installable, and `pnpm publish` exits 0 either way — so the workflow asks the
+  registry afterwards and fails the job rather than letting a queued version
+  look released. Approving the queue needs a maintainer's 2FA; OIDC cannot do
+  it, and a re-run of the job skips the publish once the version is live.
 - `.github/workflows/tests.yml` — the only automated gate. Breaking it silently
   removes every other check.
 - `package.json` version and `changelog.md` — move together. The release fails on
