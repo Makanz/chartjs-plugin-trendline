@@ -7,7 +7,7 @@ describe('BaseFitter', () => {
     expect(fitter.sumx).toBe(0);
     expect(fitter.sumx2).toBe(0);
     expect(fitter.minx).toBe(Number.MAX_VALUE);
-    expect(fitter.maxx).toBe(Number.MIN_VALUE);
+    expect(fitter.maxx).toBe(-Number.MAX_VALUE);
     expect(fitter._cacheValid).toBe(false);
   });
 
@@ -22,6 +22,16 @@ describe('BaseFitter', () => {
     expect(fitter.sumx2).toBe(30);
     expect(fitter.minx).toBe(-1);
     expect(fitter.maxx).toBe(5);
+  });
+
+  test('add() tracks min/max when every x is negative', () => {
+    const fitter = new BaseFitter();
+    fitter.add(-10);
+    fitter.add(-4);
+    fitter.add(-7);
+
+    expect(fitter.minx).toBe(-10);
+    expect(fitter.maxx).toBe(-4);
   });
 
   test('add() invalidates the coefficient cache', () => {
