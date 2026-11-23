@@ -1,3 +1,8 @@
+# Changelog 3.3.2
+
+### Bug Fixes
+- A trendline for a series where every x value is negative did not stop at the last point: it continued to x = 0. `BaseFitter` started `maxx` at `Number.MIN_VALUE`, which is the smallest *positive* number, so no negative x could ever exceed it. Applies to the linear and the exponential trendline, and to the near-zero slope check that `projection` uses
+
 # Changelog 3.3.1
 
 ### Bug Fixes
