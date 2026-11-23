@@ -83,18 +83,70 @@ jobs:
                     echo "✅ Version match confirmed"
                   fi
 
+            # Publishes here authenticate through OIDC trusted publishing
+            # (id-token: write) and sign provenance, so no NPM_TOKEN is needed.
+            # setup-node's registry-url still writes an .npmrc placeholder for
+            # one, which logs a harmless WARN about the unset variable.
+
+            - name: Check whether the version is already on npm
+              id: published
+              run: |
+                  PKG=$(node -p "require('./package.json').name")
+                  VERSION=$(node -p "require('./package.json').version")
+
+                  if npm view "$PKG@$VERSION" version > /dev/null 2>&1; then
+                    echo "already=true" >> "$GITHUB_OUTPUT"
+                    echo "✅ $PKG@$VERSION is already published — publish is skipped"
+                  else
+                    echo "already=false" >> "$GITHUB_OUTPUT"
+                    echo "ℹ️ $PKG@$VERSION is not on npm yet"
+                  fi
+
             - name: Publish to npm (beta)
-              if: startsWith(github.ref, 'refs/tags/beta/')
+              if: startsWith(github.ref, 'refs/tags/beta/') && steps.published.outputs.already != 'true'
               run: pnpm publish --tag beta --provenance --access public --no-git-checks
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
             - name: Publish to npm (latest)
-              if: startsWith(github.ref, 'refs/tags/v')
+              if: startsWith(github.ref, 'refs/tags/v') && steps.published.outputs.already != 'true'
               run: pnpm publish --provenance --access public --no-git-checks
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+            # `pnpm publish` exits 0 even when npm accepts the package into its
+            # staged-publishing queue instead of making it installable, so a
+            # green publish step says nothing about the registry. This step asks
+            # the registry, and a queued version never turns up there.
+            - name: Verify the version is installable
+              run: |
+                  PKG=$(node -p "require('./package.json').name")
+                  VERSION=$(node -p "require('./package.json').version")
+                  ATTEMPTS=${VERIFY_ATTEMPTS:-20}
+                  DELAY=${VERIFY_DELAY:-15}
+
+                  for attempt in $(seq 1 "$ATTEMPTS"); do
+                    if curl -fsS "https://registry.npmjs.org/$PKG/$VERSION" > /dev/null 2>&1; then
+                      echo "✅ $PKG@$VERSION is installable from the registry"
+
+                      if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+                        LATEST=$(npm view "$PKG" dist-tags.latest 2>/dev/null || echo "")
+                        if [ "$LATEST" != "$VERSION" ]; then
+                          echo "::error ::❌ $PKG@$VERSION is published but dist-tag 'latest' points at '$LATEST'"
+                          exit 1
+                        fi
+                        echo "✅ dist-tag 'latest' points at $VERSION"
+                      fi
+
+                      exit 0
+                    fi
+
+                    echo "… attempt $attempt/$ATTEMPTS: $VERSION is not in the registry yet, retrying in ${DELAY}s"
+                    sleep "$DELAY"
+                  done
+
+                  echo "::error ::❌ $PKG@$VERSION did not reach the registry. It is most likely waiting in npm's staged-publishing queue, where a maintainer has to approve it with 2FA at https://www.npmjs.com/package/$PKG. Re-run this job after approving: the publish step is skipped once the version is live, and the GitHub Release is created on that run."
+                  exit 1
+
+            # Reachable only when the registry confirmed the version above, so a
+            # queued publish never produces release notes for a version nobody
+            # can install.
             - name: Create GitHub Release
               uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
               with:
