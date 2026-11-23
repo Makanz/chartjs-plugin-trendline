@@ -8,7 +8,9 @@ export class BaseFitter {
         this.sumx = 0;
         this.sumx2 = 0;
         this.minx = Number.MAX_VALUE;
-        this.maxx = Number.MIN_VALUE;
+        // Not Number.MIN_VALUE: that is the smallest positive number, so it
+        // would stay the maximum when every x is negative.
+        this.maxx = -Number.MAX_VALUE;
         this._cacheValid = false;
     }
 

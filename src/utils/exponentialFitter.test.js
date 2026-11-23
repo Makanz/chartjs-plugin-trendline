@@ -10,7 +10,7 @@ describe('ExponentialFitter', () => {
       expect(fitter.sumx2).toBe(0);
       expect(fitter.sumxlny).toBe(0);
       expect(fitter.minx).toBe(Number.MAX_VALUE);
-      expect(fitter.maxx).toBe(Number.MIN_VALUE);
+      expect(fitter.maxx).toBe(-Number.MAX_VALUE);
       expect(fitter.hasValidData).toBe(true);
     });
   });
